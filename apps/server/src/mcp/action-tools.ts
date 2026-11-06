@@ -155,7 +155,7 @@ export function registerActionTools(server: McpServer, api: Api) {
 
   server.tool(
     "chart_erase",
-    "Efface des tracés (ids), ou tous ceux d'un produit (all avec target).",
+    "Efface des tracés (ids), ou tous ceux d'un produit (all avec target). La boîte d'un trade en cours (ordre en attente, position ouverte) ne s'efface pas : un ticket de retrait (ou de fermeture) s'affiche, tu le relis, seul l'utilisateur le confirme, et elle part une fois l'ordre retiré.",
     {
       ids: z.array(z.string()).optional().describe("Identifiants des tracés (d_…)"),
       target: z.string().optional().describe(DRAW_TARGET),

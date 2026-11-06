@@ -325,6 +325,8 @@ export const ticketSchema = z.object({
   /** Marge demandée par le courtier pour l'ouvrir (devise du compte), et le palier de risque choisi. */
   margin: z.number().nonnegative().optional(),
   tier: z.string().optional(),
+  /** La boîte du trade a été effacée du graphique : elle disparaîtra une fois l'ordre retiré (ou la position fermée). */
+  eraseBox: z.boolean().optional(),
   /** Le ticket relu, tel que Kopilia le dit et que l'écran le montre. */
   text: z.string().min(1),
   /** Ce qu'il faut savoir avant de confirmer (plafond appliqué, commission inconnue…). */

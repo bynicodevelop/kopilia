@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from "@angular/core";
+import type { Ticket } from "@kopilia/contracts";
 import { KopiliaService } from "../kopilia.service";
 
 /** Une erreur reste affichée ce temps-là (ou jusqu'à ce qu'on la ferme). */
@@ -71,7 +72,7 @@ const NOTE_MS = 15_000;
           <div class="ticket" role="dialog" aria-label="Ordre à confirmer">
             <div class="what">
               <span class="kicker"
-                >{{ t.action !== "open" ? "Gestion à confirmer" : t.execution === "market" ? "Ordre au marché à confirmer" : "Ordre en attente à confirmer" }} ·
+                >{{ kicker(t) }} ·
                 @if (t.demo) {
                   démo
                 } @else {
@@ -86,9 +87,11 @@ const NOTE_MS = 15_000;
             </div>
             <div class="actions">
               <button class="primary" type="button" [disabled]="kopilia.ticketSending()" (click)="kopilia.confirmTicket(t.id)">
-                {{ kopilia.ticketSending() ? "Envoi…" : "Passer l'ordre" }}
+                {{ kopilia.ticketSending() ? "Envoi…" : t.action === "cancel" ? "Retirer l'ordre" : t.action === "close" ? "Fermer la position" : "Passer l'ordre" }}
               </button>
-              <button type="button" (click)="kopilia.cancelTicket(t.id)">Annuler</button>
+              <button type="button" (click)="kopilia.cancelTicket(t.id)">
+                {{ t.action === "cancel" ? "Garder l'ordre" : t.action === "close" ? "Garder la position" : "Annuler" }}
+              </button>
             </div>
           </div>
         }
@@ -138,6 +141,13 @@ const NOTE_MS = 15_000;
 })
 export class NoticesComponent {
   readonly kopilia = inject(KopiliaService);
+  /** Ce que demande le ticket : un ordre à passer, une gestion, ou retirer l'ordre d'une boîte qu'il vient d'effacer. */
+  kicker(t: Ticket): string {
+    if (t.eraseBox) return t.action === "cancel" ? "Boîte effacée : ordre à retirer" : "Boîte effacée : position à fermer";
+    if (t.action !== "open") return "Gestion à confirmer";
+    return t.execution === "market" ? "Ordre au marché à confirmer" : "Ordre en attente à confirmer";
+  }
+
   /** L'heure, à la seconde, tant qu'un ticket attend : son compte à rebours. */
   private readonly now = signal(Date.now());
   readonly left = computed(() => Math.max(0, Math.ceil(((this.kopilia.ticket()?.expiresAt ?? 0) - this.now()) / 1000)));

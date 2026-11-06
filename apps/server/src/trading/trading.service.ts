@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { randomBytes } from "node:crypto";
-import { Injectable, OnModuleDestroy, OnModuleInit, Optional } from "@nestjs/common";
+import { Injectable, OnApplicationBootstrap, OnModuleDestroy, OnModuleInit, Optional } from "@nestjs/common";
 import {
   DEFAULT_MONEY_SETTINGS,
   MAX_RISK_TIERS,
@@ -112,6 +112,8 @@ export interface ManageRequest {
   stop?: number;
   target?: number;
   fraction?: number;
+  /** Il a effacé la boîte du trade : elle partira une fois l'ordre retiré (ou la position fermée). */
+  eraseBox?: boolean;
 }
 
 /** Le ticket en attente, avec ce qui partira chez le courtier sur confirmation. */
@@ -145,7 +147,7 @@ interface TradeRow {
 @Injectable()
 export class TradingService
   extends EventEmitter<{ changed: []; signal: [TradingSignal]; confirmed: [Trade]; noted: [Trade] }>
-  implements OnModuleInit, OnModuleDestroy
+  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy
 {
   /** Remplaçables en test. */
   now = () => Date.now();
@@ -157,6 +159,8 @@ export class TradingService
   private readonly termsReads = new Map<string, Promise<void>>();
   private commissions?: { at: number; deals: BrokerDeal[] };
   private pending?: PendingTicket;
+  /** Les trades dont la boîte s'efface quand ils se terminent chez le courtier (retrait ou fermeture confirmés). */
+  private readonly eraseOnEnd = new Set<string>();
   private timer?: NodeJS.Timeout;
   private ticketTimer?: NodeJS.Timeout;
   private syncRun?: Promise<void>;
@@ -173,6 +177,12 @@ export class TradingService
     @Optional() private readonly scenarios?: ScenarioService,
   ) {
     super();
+    // La boîte d'un trade en cours ne s'efface pas d'un geste : retirer l'ordre (ou fermer la position) passe par un ticket confirmé.
+    if (dashboard.drawings) dashboard.drawings.guard = (ids) => this.liveBoxes(ids);
+  }
+
+  onApplicationBootstrap() {
+    this.restoreBoxes();
   }
 
   onModuleInit() {
@@ -651,8 +661,10 @@ export class TradingService
       demo: account.demo,
       createdAt: this.now(),
       expiresAt: this.now() + TICKET_TTL_MS,
+      ...(req.eraseBox && trade.drawingId ? { eraseBox: true } : {}),
     };
-    return this.hold({ ticket: { ...base, text: manageTicketText(base, trade, extra) }, requests, terms });
+    const text = manageTicketText(base, trade, extra) + (base.eraseBox ? " Sa boîte s'effacera du graphique une fois que le courtier l'aura fait." : "");
+    return this.hold({ ticket: { ...base, text }, requests, terms });
   }
 
   /** L'utilisateur renonce au ticket (ou il en prépare un autre). */
@@ -755,6 +767,7 @@ export class TradingService
         this.journal(trade.id, "unknown", `${String(req.actionType)} : ${(e as Error).message}`);
       }
     }
+    if (done && t.eraseBox) this.eraseOnEnd.add(trade.id);
     if (done && (t.action === "breakeven" || t.action === "modify")) {
       const quote = this.terms.get(trade.symbol);
       const price = quote ? (trade.side === "long" ? quote.bid : quote.ask) : undefined;
@@ -883,6 +896,57 @@ export class TradingService
   getTrade(id: string): Trade | undefined {
     const row = this.db.db.prepare("SELECT * FROM trades WHERE id = ?").get(id.trim()) as TradeRow | undefined;
     return row ? parseTrade(row) : undefined;
+  }
+
+  /** Parmi ces tracés, les boîtes d'un trade en cours. */
+  liveBoxes(ids: string[]): string[] {
+    if (!ids.length) return [];
+    const live = new Set(this.liveTrades().flatMap((t) => (t.drawingId ? [t.drawingId] : [])));
+    return ids.filter((id) => live.has(id));
+  }
+
+  /**
+   * Il efface la boîte d'un trade en cours : elle reste, et un ticket propose
+   * de retirer l'ordre en attente (ou de fermer la position), comme une prise
+   * de position. Confirmé, la boîte s'efface quand le courtier l'a fait.
+   */
+  async eraseBoxTicket(drawingId: string): Promise<Ticket> {
+    const trade = this.liveTrades().find((t) => t.drawingId === drawingId);
+    if (!trade) throw new TradingError("cette boîte n'a pas de trade en cours");
+    const open = trade.legs.some((l) => l.state === "open");
+    try {
+      return await this.prepareManage({ action: open ? "close" : "cancel", trade: trade.id, eraseBox: true });
+    } catch (e) {
+      const what = open ? "une position ouverte" : "un ordre en attente";
+      throw new TradingError(`ta boîte reste : elle a ${what} chez le courtier, et ${(e as Error).message}`);
+    }
+  }
+
+  /**
+   * Un trade en cours garde sa boîte sur le graphique : celle effacée avant
+   * cette garde est redessinée à ses niveaux de départ (entrée, stop, premier
+   * objectif). Au démarrage. Renvoie le nombre de boîtes redessinées.
+   */
+  restoreBoxes(): number {
+    let n = 0;
+    for (const t of this.liveTrades()) {
+      if (t.drawingId && this.dashboard.drawings.get(t.drawingId)) continue;
+      const target = t.targets[0] ?? t.legs.find((l) => l.target !== undefined)?.target;
+      if (target === undefined) continue;
+      try {
+        const shape = { kind: "position", side: t.side, entry: t.entry, stop: t.initialStop, target, from: Math.floor(t.createdAt / 1000) };
+        const box = this.dashboard.drawings.create(t.symbol, shape, { by: "user" });
+        t.drawingId = box.id;
+        t.updatedAt = this.now();
+        this.saveTrade(t);
+        n++;
+        this.logger.log(`${t.name} : boîte du trade ${t.id} redessinée (${t.state === "pending" ? "ordre en attente" : "position ouverte"})`, "trading");
+      } catch (e) {
+        this.logger.warn(`${t.name} : boîte du trade ${t.id} non redessinée (${(e as Error).message})`, "trading");
+      }
+    }
+    if (n) this.emit("changed");
+    return n;
   }
 
   /** Les trades en cours (ordre en attente, position ouverte). */
@@ -1066,6 +1130,8 @@ export class TradingService
         trade.updatedAt = this.now();
         this.saveTrade(trade);
         changed = true;
+        // Le retrait (ou la fermeture) demandé en effaçant la boîte est fait : la boîte part maintenant.
+        if (!isLiveTrade(trade.state) && this.eraseOnEnd.delete(trade.id) && trade.drawingId) this.dashboard.drawings.remove([trade.drawingId]);
         if (trade.state === "open" && wasState === "pending") {
           const line = `${trade.name} : ordre exécuté. ${tradeLine(trade, this.now())}.`;
           this.journal(trade.id, "filled", line);

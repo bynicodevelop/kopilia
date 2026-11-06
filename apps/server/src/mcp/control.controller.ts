@@ -497,10 +497,33 @@ export class ControlController {
         if (!body.target) return { error: "dis de quel graphique ou produit tout effacer (target)" };
         const product = await this.dashboard.drawingProduct(body.target);
         const gone = this.dashboard.drawings.clear(product.symbol);
-        return gone.length ? { erased: gone.length, product: product.name } : { erased: 0, note: `aucun tracé sur ${product.name}` };
+        // Les boîtes d'un trade en cours restent : les effacer passe par le retrait de l'ordre (trade_manage), confirmé.
+        const kept = this.dashboard.drawings.guard(this.dashboard.drawings.list([product.symbol]).map((d) => d.id)).length;
+        const note = kept
+          ? `${kept} boîte${kept > 1 ? "s" : ""} d'un trade en cours gardée${kept > 1 ? "s" : ""} : pour l'effacer, retirer l'ordre ou fermer la position`
+          : undefined;
+        if (!gone.length) return { erased: 0, note: note ?? `aucun tracé sur ${product.name}` };
+        return { erased: gone.length, product: product.name, ...(note ? { note } : {}) };
       }
       const ids = (body.ids ?? []).map(String);
       if (!ids.length) return { error: "dis quels tracés effacer (ids), ou all avec target" };
+      // La boîte d'un trade en cours reste : un ticket propose de retirer l'ordre (ou de fermer la position), à relire et à faire confirmer.
+      const live = this.dashboard.drawings.guard(ids);
+      if (live.length) {
+        const others = ids.filter((id) => !live.includes(id));
+        const erased = others.length ? this.dashboard.drawings.remove(others).length : 0;
+        try {
+          const ticket = await this.trading.eraseBoxTicket(live[0]);
+          return {
+            erased,
+            kept: live,
+            ticket: ticket.text,
+            note: "boîte d'un trade en cours : elle reste, un ticket s'affiche ; relis-le, seul l'utilisateur le confirme, et la boîte s'effacera une fois l'ordre retiré",
+          };
+        } catch (e) {
+          return { erased, kept: live, error: (e as Error).message };
+        }
+      }
       // Un niveau de l'IA effacé est retiré : ses dossiers le perdent et sont relus.
       const levels = ids.filter((id) => this.dashboard.drawings.get(id)?.createdBy === "ia");
       for (const id of levels) this.levels.dismiss(id);

@@ -518,3 +518,77 @@ test("l'ordre suit la boîte : au marché seulement si son entrée est au prix d
     t.done();
   }
 });
+
+test("effacer la boîte d'un ordre en attente : elle reste, un ticket de retrait s'affiche ; confirmé, elle part une fois l'ordre retiré", async () => {
+  const t = setup();
+  try {
+    const open = await t.trading.prepareOpen({ drawingId: t.box.id });
+    const { trade } = await t.trading.confirm(open.id, "click");
+    assert.equal(t.trading.getTrade(trade!.id)!.state, "pending");
+    assert.deepEqual(t.drawings.remove([t.box.id]), [], "la boîte d'un ordre en attente ne s'efface pas d'un geste");
+    assert.deepEqual(t.drawings.clear("NAS100"), [], "ni en effaçant tout le produit");
+    assert.ok(t.drawings.get(t.box.id));
+
+    const ticket = await t.trading.eraseBoxTicket(t.box.id);
+    assert.equal(ticket.action, "cancel");
+    assert.equal(ticket.eraseBox, true);
+    assert.match(ticket.text, /^Retirer ton ordre .*Sa boîte s'effacera du graphique une fois que le courtier l'aura fait\.$/);
+    t.trading.cancelTicket();
+    assert.ok(t.drawings.get(t.box.id), "ticket abandonné : la boîte reste, l'ordre aussi");
+    assert.equal(t.broker.orders.length, 1);
+
+    const again = await t.trading.eraseBoxTicket(t.box.id);
+    assert.equal((await t.trading.confirm(again.id, "click")).ok, true);
+    await t.trading.sync();
+    assert.equal(t.broker.orders.length, 0, "l'ordre est retiré chez le courtier");
+    assert.equal(t.trading.getTrade(trade!.id)!.state, "cancelled");
+    assert.equal(t.drawings.get(t.box.id), undefined, "puis la boîte part");
+  } finally {
+    t.done();
+  }
+});
+
+test("effacer la boîte d'une position ouverte propose de la fermer ; une boîte sans trade en cours s'efface comme avant", async () => {
+  const t = setup();
+  try {
+    const open = await t.trading.prepareOpen({ drawingId: t.box.id, execution: "market" });
+    await t.trading.confirm(open.id, "click");
+    const ticket = await t.trading.eraseBoxTicket(t.box.id);
+    assert.equal(ticket.action, "close");
+    assert.match(ticket.text, /^Fermer ton achat .*Sa boîte s'effacera du graphique/);
+    t.trading.cancelTicket();
+    assert.ok(t.drawings.get(t.box.id));
+
+    const other = t.drawings.create("NAS100", { ...BOX, entry: 21300, stop: 21260, target: 21420 }, { by: "user" });
+    assert.deepEqual(
+      t.drawings.remove([other.id]).map((d) => d.id),
+      [other.id],
+      "sans trade en cours : effacée tout de suite",
+    );
+    await assert.rejects(t.trading.eraseBoxTicket(other.id), /pas de trade en cours/);
+  } finally {
+    t.done();
+  }
+});
+
+test("un trade en cours qui a perdu sa boîte la retrouve au démarrage, à ses niveaux de départ", async () => {
+  const t = setup();
+  try {
+    const open = await t.trading.prepareOpen({ drawingId: t.box.id });
+    const { trade } = await t.trading.confirm(open.id, "click");
+    // Effacée avant la garde : directement dans la base.
+    t.data.db.db.prepare("DELETE FROM drawings WHERE id = ?").run(t.box.id);
+    assert.equal(t.trading.restoreBoxes(), 1);
+    const restored = t.trading.getTrade(trade!.id)!;
+    assert.notEqual(restored.drawingId, t.box.id);
+    const box = t.drawings.get(restored.drawingId!)!;
+    assert.equal(box.kind, "position");
+    assert.equal(box.symbol, "NAS100");
+    const shape = box as Extract<Drawing, { kind: "position" }>;
+    assert.deepEqual([shape.side, shape.entry, shape.stop, shape.target], ["long", BOX.entry, BOX.stop, BOX.target]);
+    assert.equal(t.trading.restoreBoxes(), 0, "une fois suffit");
+    assert.deepEqual(t.drawings.remove([box.id]), [], "et elle est gardée comme les autres");
+  } finally {
+    t.done();
+  }
+});

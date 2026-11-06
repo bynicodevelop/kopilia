@@ -137,9 +137,21 @@ export class DrawingService extends EventEmitter<{ changed: [string] }> {
     return this.get(d.id)!;
   }
 
-  /** Efface ces tracés ; renvoie ceux qui existaient. */
+  /**
+   * Les tracés qu'aucun geste n'efface : les boîtes d'un trade en cours (ordre
+   * en attente, position ouverte), données par la prise de position. Effacer
+   * l'une d'elles passe par un ticket à confirmer, qui retire l'ordre ; la
+   * boîte part une fois le trade terminé chez le courtier.
+   */
+  guard: (ids: string[]) => string[] = () => [];
+
+  /** Efface ces tracés, sauf ceux que la garde retient ; renvoie ceux qui sont effacés. */
   remove(ids: string[]): Drawing[] {
-    const found = ids.map((id) => this.get(id)).filter((d): d is Drawing => d !== undefined);
+    const kept = new Set(this.guard(ids));
+    const found = ids
+      .filter((id) => !kept.has(id))
+      .map((id) => this.get(id))
+      .filter((d): d is Drawing => d !== undefined);
     if (!found.length) return [];
     const del = this.db.db.prepare("DELETE FROM drawings WHERE id = ?");
     this.db.tx(() => {

@@ -6,6 +6,7 @@ import { DashboardError, DashboardService } from "./dashboard.service.js";
 import { LevelService } from "../setups/level.service.js";
 import { SetupError } from "../setups/scenario.service.js";
 import { JobService } from "../jobs/job.service.js";
+import { TradingError, TradingService } from "../trading/trading.service.js";
 import { ACTIVITY_MAX, ACTIVITY_MS, activityItem } from "./activity.js";
 import type { ActivityItem } from "@kopilia/contracts";
 
@@ -24,6 +25,7 @@ export class DashboardController {
     private readonly market: MarketService,
     private readonly levels: LevelService,
     private readonly jobs: JobService,
+    private readonly trading: TradingService,
   ) {}
 
   @Get()
@@ -78,10 +80,18 @@ export class DashboardController {
     });
   }
 
-  /** Un tracé effacé ; un niveau de l'IA effacé est retiré (ses dossiers sont relus). */
+  /**
+   * Un tracé effacé ; un niveau de l'IA effacé est retiré (ses dossiers sont
+   * relus). La boîte d'un trade en cours reste : un ticket à confirmer propose
+   * de retirer l'ordre (ou de fermer la position), elle part ensuite.
+   */
   @Post("drawings/:id/delete")
   eraseDrawing(@Param("id") id: string) {
-    return this.guard(() => {
+    return this.guard(async () => {
+      if (this.dashboard.drawings.guard([id]).length) {
+        const ticket = await this.trading.eraseBoxTicket(id);
+        return { erased: [], kept: [id], ticket: ticket.id };
+      }
       if (this.dashboard.drawings.get(id)?.createdBy === "ia") return { erased: [this.levels.dismiss(id).id] };
       return { erased: this.dashboard.drawings.remove([id]).map((d) => d.id) };
     });
@@ -151,7 +161,7 @@ export class DashboardController {
     try {
       return await fn();
     } catch (e) {
-      if (e instanceof DashboardError || e instanceof SetupError) throw new BadRequestException(e.message);
+      if (e instanceof DashboardError || e instanceof SetupError || e instanceof TradingError) throw new BadRequestException(e.message);
       throw e;
     }
   }
