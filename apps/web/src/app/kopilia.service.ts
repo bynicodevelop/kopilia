@@ -281,6 +281,10 @@ export class KopiliaService {
     this.utterance = undefined;
     this.userSpeaking.set(false);
     this.silence();
+    // Les numéros de voix ne valent que pour une connexion : un serveur relancé
+    // recompte, et un numéro coupé avant ferait taire une nouvelle réponse.
+    this.mutedStreams.clear();
+    this.audioStream = -1;
     // La reconnexion ouvre une nouvelle conversation : les documents en attente sont restés dans l'ancienne.
     if (this.docs.drop()) this.error.set("Connexion perdue — dépose à nouveau tes documents.");
     this.scheduleReconnect();
