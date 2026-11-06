@@ -1,0 +1,19 @@
+# Générés, téléchargés ou volumineux
+node_modules/
+dist/
+.angular/
+data/
+models/
+run/
+logs/
+pnpm-lock.yaml
+workers/whisper/bin/
+workers/kokoro/.venv/
+vendor/
+# La documentation garde sa mise en forme (tableaux, retours à la ligne voulus)
+*.md
+# Le CSS garde son écriture compacte (une règle par ligne), comme celui des composants.
+*.css
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/waiting/orb.js

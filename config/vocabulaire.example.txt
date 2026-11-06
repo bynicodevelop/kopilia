@@ -1,0 +1,73 @@
+# Vocabulaire de la reconnaissance vocale de Kopilia : le modèle de départ.
+#
+# L'installation (pnpm run setup) le copie dans config/vocabulaire.txt : c'est
+# ce fichier-là, le tien, que tu modifies. Il reste sur ton Mac (jamais envoyé
+# sur GitHub). Sans lui, Kopilia se sert de ce modèle.
+#
+# Un terme par ligne (noms propres, sigles, noms de projets) : Whisper les
+# reconnaît mieux, avec la bonne orthographe. Garde la liste courte et utile :
+# chaque terme en trop dilue les autres (~500 caractères au plus).
+# Astuce mesurée : un mot de contexte aide beaucoup (« Fed » à côté de
+# « taux directeurs » n'est plus compris « la fête »).
+#
+# « erreur => correction » corrige une erreur qui persiste malgré tout.
+# Les lignes « # » sont ignorées. Pris en compte en 30 s, sans redémarrer.
+#
+# Avant de changer quoi que ce soit, mesurer : pnpm stt:bench (le banc lit
+# scripts/stt-bench/phrases.txt avec Kokoro et Thomas, puis compare).
+
+Kopilia
+BCE
+Fed
+FOMC
+taux directeurs
+Nasdaq
+Dow Jones
+S&P 500
+CAC 40
+PMI
+ISM
+CPI
+PCE
+NFP
+Eurostat
+brief
+veille
+Claude
+
+# Produits où Whisper butait (mesuré sur le banc, 2026-11-06), dits comme on
+# les dit, avec un mot de contexte. Mesuré : une longue liste de produits
+# n'apporte rien de plus, et les codes (EURJPY…) aident moins que les noms.
+graphique de l'euro-yen
+vente sur le dollar-yen
+paire AUD-USD
+CAD-yen
+GBP-yen
+dollar néo-zélandais
+
+# Mots du trader
+intraday
+wrap
+zone IA
+Telegram
+MetaApi
+
+# Corrections
+Copilia => Kopilia
+Copilya => Kopilia
+Kopilya => Kopilia
+
+# Produits mal entendus, relevés en usage réel et sur le banc.
+le Royenne => l'euro-yen
+le Royen => l'euro-yen
+le ro-yen => l'euro-yen
+Royenne => euro-yen
+Royen => euro-yen
+dollarienne => dollar-yen
+dollarien => dollar-yen
+cadienne => CAD-yen
+néo-zerlandais => néo-zélandais
+néo-sierlandais => néo-zélandais
+neuzerlandais => néo-zélandais
+néo-erlandais => néo-zélandais
+peux que tu => veux que tu

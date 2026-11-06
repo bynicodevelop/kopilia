@@ -1,0 +1,95 @@
+# Phrases du banc de la reconnaissance vocale (scripts/stt-bench/run.mjs).
+#
+# Une phrase par ligne : « ce que la voix lit | ce que Whisper devrait écrire | termes à retrouver ».
+# - Ce que la voix lit est écrit pour l'oreille : « A.U.D. » se dit lettre à
+#   lettre, « CADE » se dit « cad », « Nass » se dit « nasse ».
+# - Vide, la transcription attendue reprend la phrase lue.
+# - Termes séparés par « ; », variantes acceptées par « / » (« euro-yen/EURJPY »).
+#   Comparés sans casse, sans accents ni ponctuation ; un terme de 4 lettres ou
+#   plus est aussi reconnu collé ou coupé (« euroyen », « N-Z-D-J-P-Y »).
+# - « ## » ouvre une famille, comptée à part dans le bilan.
+#
+# Tirées de vraies demandes faites à Kopilia (table turns), sur les
+# produits d'une liste courante (KOPILIA_SETUP_PRODUCTS) et les mots où Whisper bute.
+
+## produits
+Ouvre le graphique de l'euro-yen. | | euro-yen/EURJPY/euroyen
+Affiche-moi le graphique euro-yen. | | euro-yen/EURJPY/euroyen
+Je suis en vente sur l'euro-yen. | | euro-yen/EURJPY/euroyen
+Dis simplement que je suis en position sur l'euro-yen. | | euro-yen/EURJPY/euroyen
+Positionne l'ordre qu'il y a sur l'euro-yen. | | euro-yen/EURJPY/euroyen
+Ok, ferme l'euro-yen. | | euro-yen/EURJPY/euroyen
+Ouvre-moi l'euro-dollar. | | euro-dollar/EURUSD/euro-USD
+Je veux le dernier prix sur l'euro U.S.D. | Je veux le dernier prix sur l'euro-USD. | euro-USD/EURUSD/euro-dollar
+Je suis en vente sur le N.Z.D. J.P.Y. | Je suis en vente sur le NZD-JPY. | NZD-JPY/NZDJPY/NZD-yen
+Fais-moi une petite analyse fondamentale sur le N.Z.D. J.P.Y. | Fais-moi une petite analyse fondamentale sur le NZD-JPY. | NZD-JPY/NZDJPY/NZD-yen
+Ouvre-moi le N.Z.D. U.S.D. | Ouvre-moi le NZD-USD. | NZD-USD/NZDUSD
+Le dollar néo-zélandais semble faiblir face au dollar. | | néo-zélandais
+Envoie le dollar néo-zélandais sur mon canal Telegram. | | néo-zélandais; Telegram
+C'est le produit sur lequel on travaille, le dollar néo-zélandais. | | néo-zélandais
+Ouvre le dollar-yen en plein écran. | | dollar-yen/USDJPY/USD-JPY/USD-yen
+Finalement, c'est l'U.S.D. yen qu'il faut mettre. | Finalement, c'est l'USD-yen qu'il faut mettre. | USD-yen/USDJPY/USD-JPY/dollar-yen
+Ouvre-moi le dollar australien. | | dollar australien
+Tu peux fermer le graphique du dollar australien. | | dollar australien
+Mets une alerte sur l'A.U.D. U.S.D. | Mets une alerte sur l'AUD-USD. | AUD-USD/AUDUSD
+Affiche l'A.U.D. yen. | Affiche l'AUD-yen. | AUD-yen/AUDJPY/AUD-JPY
+Ouvre l'A.U.D. CADE. | Ouvre l'AUD-CAD. | AUD-CAD/AUDCAD
+Affiche l'A.U.D. N.Z.D. | Affiche l'AUD-NZD. | AUD-NZD/AUDNZD
+Fais-moi une liste de suivi sur le G.B.P. yen. | Fais-moi une liste de suivi sur le GBP-yen. | GBP-yen/GBPJPY/GBP-JPY/livre-yen
+Ouvre-moi le G.B.P. U.S.D. | Ouvre-moi le GBP-USD. | GBP-USD/GBPUSD/livre-dollar
+Ferme la livre sterling. | | livre sterling
+Ouvre le G.B.P. N.Z.D. | Ouvre le GBP-NZD. | GBP-NZD/GBPNZD
+Ouvre le G.B.P. CADE. | Ouvre le GBP-CAD. | GBP-CAD/GBPCAD
+Ouvre le G.B.P. A.U.D. | Ouvre le GBP-AUD. | GBP-AUD/GBPAUD
+Mets une liste de surveillance sur l'euro-CADE. | Mets une liste de surveillance sur l'euro-CAD. | euro-CAD/EURCAD
+Ouvre l'euro-livre. | | euro-livre/EURGBP/euro-GBP
+Ajoute l'euro G.B.P. à la liste. | Ajoute l'euro-GBP à la liste. | euro-GBP/EURGBP/euro-livre
+Ouvre l'euro A.U.D. | Ouvre l'euro-AUD. | euro-AUD/EURAUD
+Ouvre l'euro N.Z.D. | Ouvre l'euro-NZD. | euro-NZD/EURNZD
+Affiche le CADE-yen. | Affiche le CAD-yen. | CAD-yen/CADJPY/CAD-JPY
+Ouvre l'U.S.D. CADE. | Ouvre l'USD-CAD. | USD-CAD/USDCAD/dollar canadien
+Ouvre le N.Z.D. CADE. | Ouvre le NZD-CAD. | NZD-CAD/NZDCAD
+Affiche-moi le golde. | Affiche-moi le gold. | gold
+Tu sembles avoir trouvé un setup sur l'or. | | or; setup
+Ouvre le graphique de l'argent. | | argent
+Ouvre le cuivre. | | cuivre
+Ouvre le platine. | | platine
+Ouvre le pétrole. | | pétrole
+Ouvre-moi le Nasdaq en plein écran. | | Nasdaq
+Ouvre-moi le Nass. | Ouvre-moi le NAS. | NAS/Nasdaq
+Ajoute le S&P 500 dans le suivi. | | S&P 500/SP500/S&P500
+Mets une alerte sur le M.N.Q. | Mets une alerte sur le MNQ. | MNQ/M N Q
+Je trade le Y.M. et le M.G.C. | Je trade le YM et le MGC. | YM/Y M; MGC/M G C
+Je veux une liste de surveillance sur le Dow Jones. | | Dow Jones
+
+## mots du trader
+Je veux que tu m'affiches une liste de mes produits. | | je veux que
+Je veux que tu m'ouvres le graphique de l'or. | | je veux que; or
+Préviens-moi quand on a une bougie de rejet en quinze minutes. | | bougie de rejet
+Mets une alerte sur les cinquante pour cent de retracement de Fibonatchi. | Mets une alerte sur les 50 % de retracement de Fibonacci. | Fibonacci
+Fais-moi le résumé du wrap de ce matin. | | wrap
+C'est une position intradé. | C'est une position intraday. | intraday
+Tu as bien utilisé la connexion avec MetaApi ? | | MetaApi/Meta API
+Est-ce qu'il y a une zone I.A. sur le golde ? | Est-ce qu'il y a une zone IA sur le gold ? | zone IA; gold
+Envoie-le sur mon canal business. | | business
+Place une alerte sur le stop loss et le take profit. | | stop loss/stop-loss; take profit/take-profit
+
+## déjà dans le vocabulaire
+Kopilia, quel est le prochain chiffre américain ? | | Kopilia
+Est-ce que la Fed va baisser ses taux directeurs ? | | Fed; taux directeurs
+La B.C.E. publie sa décision jeudi. | La BCE publie sa décision jeudi. | BCE
+Le compte rendu du F.O.M.C. sort ce soir. | Le compte rendu du FOMC sort ce soir. | FOMC
+Quel est le consensus pour le C.P.I. et le P.C.E. ? | Quel est le consensus pour le CPI et le PCE ? | CPI; PCE
+Les N.F.P. sortent vendredi. | Les NFP sortent vendredi. | NFP
+Le P.M.I. manufacturier et l'I.S.M. des services. | Le PMI manufacturier et l'ISM des services. | PMI; ISM
+Fais-moi le brief du matin. | | brief
+Le CAC 40 a ouvert en baisse. | | CAC 40
+Eurostat publie l'inflation de la zone euro. | | Eurostat
+Le Nasdaq et le Dow Jones ont fini en hausse. | | Nasdaq; Dow Jones
+Claude, tu m'entends ? | | Claude
+
+## phrases courantes
+Tu peux tout fermer. | | fermer
+Peux-tu me donner la météo à Paris ? | | météo
+Oui, vas-y. | | vas-y
+Rappelle-moi le briefing de ce matin sur l'actualité économique. | | briefing; actualité économique

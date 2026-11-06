@@ -1,0 +1,45 @@
+{
+  "name": "kopilia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kopilia — assistant vocal français sur Mac Apple Silicon, piloté par le CLI Claude Code.",
+  "license": "SEE LICENSE IN LICENSE",
+  "packageManager": "pnpm@10.11.1",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "setup": "bash scripts/bootstrap.sh",
+    "bootstrap": "bash scripts/bootstrap.sh",
+    "doctor": "node scripts/doctor.mjs",
+    "start": "bash scripts/start.sh",
+    "stop": "bash scripts/stop.sh",
+    "app": "pnpm --filter @kopilia/desktop app",
+    "test": "pnpm run build:server && pnpm -r --if-present typecheck && pnpm -r --if-present test",
+    "build": "pnpm --filter @kopilia/contracts build && pnpm --filter @kopilia/server build && pnpm --filter @kopilia/web build",
+    "dev": "pnpm --filter @kopilia/server dev",
+    "models:fetch": "node scripts/fetch-models.mjs",
+    "models:verify": "node scripts/fetch-models.mjs --verify-only",
+    "data:wipe": "node scripts/wipe-data.mjs",
+    "telegram:chats": "node scripts/telegram-chats.mjs",
+    "stt:bench": "node scripts/stt-bench/run.mjs",
+    "build:server": "pnpm --filter @kopilia/contracts build && pnpm --filter @kopilia/server build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm test && pnpm lint && pnpm format:check && node scripts/doctor.mjs --quiet"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "prettier": "3.9.10",
+    "typescript": "5.5.4",
+    "typescript-eslint": "8.72.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
+  }
+}

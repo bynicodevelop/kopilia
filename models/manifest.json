@@ -1,0 +1,51 @@
+{
+  "comment": "Manifeste des modèles. Révision/chemin/taille épinglés. Les empreintes publiées sont vérifiées quand elles existent ; sinon l'empreinte téléchargée est consignée dans models/manifest.lock.json au premier passage et revérifiée ensuite. Télécharger vers un fichier temporaire, valider, puis renommer.",
+  "files": [
+    {
+      "id": "whisper-large-v3-turbo-q5",
+      "role": "stt-model",
+      "dest": "models/ggml-large-v3-turbo-q5_0.bin",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
+      "approxBytes": 574041195,
+      "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+      "note": "Whisper large-v3-turbo quantifié (q5_0) : ~4 fois moins d'erreurs que Base en français, ~1 s par phrase sur M3 Pro (Metal, flash attention, modèle gardé en mémoire)."
+    },
+    {
+      "id": "whisper-base",
+      "role": "stt-model-optional",
+      "dest": "models/ggml-base.bin",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+      "approxBytes": 147951465,
+      "sha256": null,
+      "optional": true,
+      "note": "Ancien modèle par défaut, bien plus rapide (~0,3 s) mais nettement moins précis en français. Repli possible via KOPILIA_WHISPER_MODEL."
+    },
+    {
+      "id": "whisper-tiny",
+      "role": "stt-model-optional",
+      "dest": "models/ggml-tiny.bin",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
+      "approxBytes": 77691713,
+      "sha256": null,
+      "optional": true,
+      "note": "Option configurable si les mesures sur ce Mac justifient un modèle plus léger."
+    },
+    {
+      "id": "whisper-vad-silero",
+      "role": "vad-model",
+      "dest": "models/ggml-silero-v5.1.2.bin",
+      "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin",
+      "approxBytes": 2219725,
+      "sha256": null,
+      "optional": true,
+      "note": "VAD Silero pour whisper.cpp. Inutilisé : la détection de voix se fait dans le navigateur (apps/web/src/app/audio/vad.ts), whisper ne reçoit que des énoncés déjà découpés. Gardé optionnel pour un éventuel VAD côté whisper."
+    }
+  ],
+  "kokoro": {
+    "comment": "Kokoro-82M et la voix ff_siwis sont fournis par le paquet pip 'kokoro' et téléchargés depuis Hugging Face (hexgrad/Kokoro-82M) au premier usage. Le bootstrap force ce téléchargement via une synthèse de contrôle (voir scripts/bootstrap.sh) pour qu'aucun chargement implicite ne survienne au premier lancement.",
+    "package": "kokoro",
+    "weights": "hexgrad/Kokoro-82M",
+    "voice": "ff_siwis",
+    "lang": "f"
+  }
+}

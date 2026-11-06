@@ -1,0 +1,24 @@
+[package]
+name = "kopilia-desktop"
+version = "0.1.0"
+description = "Kopilia, l'application : la page de Kopilia dans sa fenêtre, et la touche pour parler où que tu sois."
+edition = "2021"
+rust-version = "1.90"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"
+
+# macOS 27 refuse les bibliothèques passées à `strip` par Rust 1.92 (« mis-aligned
+# LINKEDIT string pool ») : les macros de compilation ne se chargeraient pas.
+[profile.release]
+strip = "none"
+
+[profile.release.build-override]
+strip = "none"

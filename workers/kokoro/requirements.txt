@@ -1,0 +1,6 @@
+# Kokoro-82M + phonémisation française (misaki[fr] tire espeak-ng).
+# Épinglé pour la reproductibilité ; ajuster si les mesures sur ce Mac le justifient.
+kokoro==0.9.4
+misaki[fr]==0.9.4
+numpy>=1.26,<3
+soundfile>=0.12.1

@@ -1,0 +1,16 @@
+{
+  "name": "@kopilia/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kopilia, l'application Mac : la page de Kopilia dans sa fenêtre, et la touche pour parler même sur TradingView.",
+  "scripts": {
+    "app": "bash build.sh",
+    "icons": "rsvg-convert -w 1024 -h 1024 icon.svg -o src-tauri/icons/icon-1024.png && tauri icon src-tauri/icons/icon-1024.png && rm -rf src-tauri/icons/android src-tauri/icons/ios src-tauri/icons/icon-1024.png src-tauri/icons/Square*.png src-tauri/icons/StoreLogo.png && for f in tray/*.svg; do rsvg-convert -w 36 -h 36 \"$f\" -o \"src-tauri/icons/tray/$(basename \"$f\" .svg).png\"; done",
+    "tauri": "tauri",
+    "waiting": "esbuild ../web/src/app/orb/waiting.ts --bundle --format=iife --minify --target=safari17 --outfile=waiting/orb.js"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4",
+    "esbuild": "0.23.1"
+  }
+}

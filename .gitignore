@@ -1,0 +1,44 @@
+# deps & builds
+node_modules/
+dist/
+build/
+.angular/
+*.tsbuildinfo
+
+# runtime data (Kopilia owns these; never commit)
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+var/
+run/
+logs/
+*.log
+*.pid
+# trace d'une conversation réelle (scripts/record-claude-events.mjs)
+docs/claude-events-sample.ndjson
+
+# models & native engines (large; fetched by bootstrap, verified by manifest)
+models/*
+!models/.gitkeep
+!models/manifest.json
+vendor/whisper.cpp/
+workers/kokoro/.venv/
+workers/whisper/bin/
+
+# os / editor
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Cache du SDK MetaApi (flux des cotations), écrit par le serveur dans le dossier où il tourne.
+.metaapi/
+
+# Application Mac (Tauri) : compilation Rust et schémas générés
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/waiting/orb.js
+
+# Ton vocabulaire de transcription : personnel, créé à l'installation depuis config/vocabulaire.example.txt.
+config/vocabulaire.txt
