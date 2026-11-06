@@ -178,6 +178,10 @@ export class TradingService
   onModuleInit() {
     // Une boîte posée ou déplacée, un graphique ouvert : leurs conditions et le compte sont relus (regroupés).
     this.dashboard.on("updated", () => this.refreshSoon());
+    // L'encart Journal montre les trades en cours en direct : leurs produits sont suivis tant qu'il est là.
+    const follow = () => this.dashboard.followTrades(this.liveTrades().map((t) => t.symbol));
+    this.on("changed", follow);
+    follow();
     if (this.market.enabled) setTimeout(() => this.refreshSoon(), 4_000).unref();
     this.timer = setInterval(() => void this.tick(), this.syncMs);
     this.timer.unref();

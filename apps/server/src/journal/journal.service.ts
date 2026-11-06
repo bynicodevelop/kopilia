@@ -324,6 +324,16 @@ export class JournalService
       ...(remark ? { remark } : {}),
       ...(notes.length ? { note: notes.at(-1)!.text } : {}),
       demo: t.demo,
+      entry: t.entry,
+      stop: t.stop,
+      initialStop: t.initialStop,
+      ...(t.targets.length ? { target: t.targets[0] } : {}),
+      lots: t.lots,
+      risk: t.risk,
+      execution: t.execution,
+      ...(t.digits !== undefined ? { digits: t.digits } : {}),
+      createdAt: t.createdAt,
+      ...(t.openedAt ? { openedAt: t.openedAt } : {}),
     };
   }
 

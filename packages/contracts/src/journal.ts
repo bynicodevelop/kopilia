@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { POSITION_SIDES } from "./technical.js";
-import { TRADE_STATES, tradeSchema, type Trade, type TradeExit } from "./trading.js";
+import { ORDER_EXECUTIONS, TRADE_STATES, tradeSchema, type Trade, type TradeExit } from "./trading.js";
 
 /*
  * Journal de trading : chaque trade passé par Kopilia, rattaché à la fiche
@@ -160,6 +160,19 @@ export const journalLineSchema = z.object({
   /** Sa dernière note dictée. */
   note: z.string().optional(),
   demo: z.boolean(),
+  /** Ses niveaux, pour l'écran d'un trade en cours : l'entrée, le stop (à jour et de départ), le premier objectif. */
+  entry: z.number().optional(),
+  stop: z.number().optional(),
+  initialStop: z.number().optional(),
+  target: z.number().optional(),
+  lots: z.number().optional(),
+  /** Le risque engagé (perte au stop de départ), dans la devise du compte. */
+  risk: z.number().optional(),
+  execution: z.enum(ORDER_EXECUTIONS).optional(),
+  digits: z.number().int().nonnegative().optional(),
+  /** Le ticket, et l'exécution s'il y en a eu une. */
+  createdAt: z.number().int().positive().optional(),
+  openedAt: z.number().int().positive().optional(),
 });
 export type JournalLine = z.infer<typeof journalLineSchema>;
 

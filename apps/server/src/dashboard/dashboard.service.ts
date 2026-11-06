@@ -97,6 +97,8 @@ export class DashboardService
   extends EventEmitter<{ updated: [DashboardView]; display: [{ panelId?: string; display: PanelDisplay }] }>
   implements OnModuleInit
 {
+  /** Les produits des trades en cours, suivis pour l'encart Journal (voir followTrades). */
+  private tradeSymbols: string[] = [];
   constructor(
     private readonly db: DatabaseService,
     private readonly market: MarketService,
@@ -658,12 +660,28 @@ export class DashboardService
         all.push(...viewSymbols(JSON.parse(r.spec) as ViewSpec));
         continue;
       }
-      if (r.kind === "activity" || r.kind === "news" || r.kind === "journal" || r.kind === "robots") continue;
+      if (r.kind === "journal") {
+        all.push(...this.tradeSymbols);
+        continue;
+      }
+      if (r.kind === "activity" || r.kind === "news" || r.kind === "robots") continue;
       const spec = parseSpec(r);
       if ("timeframe" in spec) all.push(spec.symbol);
       else all.push(...spec.symbols.map((s) => s.symbol));
     }
     return [...new Set(all)];
+  }
+
+  /**
+   * Les produits des trades en cours (ordres en attente, positions ouvertes),
+   * donnés par la prise de position : l'encart Journal les montre en direct,
+   * leurs cotations le suivent tant qu'il est là.
+   */
+  followTrades(symbols: string[]): void {
+    const next = [...new Set(symbols)].sort();
+    if (next.join(",") === this.tradeSymbols.join(",")) return;
+    this.tradeSymbols = next;
+    if (this.rows().some((r) => r.kind === "journal")) this.market.feed.setSymbols(this.symbols());
   }
 
   /** Les produits des setups ouverts, triés. */

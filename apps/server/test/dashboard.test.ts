@@ -814,3 +814,22 @@ test("activité : un seul encart, désigné par « activité » ou « agents »,
     cleanup();
   }
 });
+
+test("encart Journal : les produits des trades en cours sont suivis en direct tant qu'il est là", async () => {
+  const { dashboard, watched, cleanup } = setup();
+  try {
+    dashboard.followTrades(["AUDNZD.i", "XAUUSD", "XAUUSD"]);
+    assert.equal(watched.length, 0, "sans encart Journal, rien n'est suivi");
+    dashboard.openJournal();
+    assert.deepEqual(watched.at(-1), ["AUDNZD.i", "XAUUSD"]);
+    dashboard.followTrades(["XAUUSD"]);
+    assert.deepEqual(watched.at(-1), ["XAUUSD"], "une position fermée n'est plus suivie");
+    const before = watched.length;
+    dashboard.followTrades(["XAUUSD"]);
+    assert.equal(watched.length, before, "rien de neuf : la liste suivie ne change pas");
+    dashboard.close("journal");
+    assert.deepEqual(watched.at(-1), []);
+  } finally {
+    cleanup();
+  }
+});
