@@ -49,7 +49,7 @@ import { ScenarioService } from "../setups/scenario.service.js";
 import { SetupsUpdatedView } from "../setups/setups-view.js";
 import { abandonedTexts, proposedTexts, searchedTexts } from "../setups/setup-texts.js";
 import { SetupAgentsService } from "../setups/setup-agents.service.js";
-import { TradingService, type TradingSignal } from "../trading/trading.service.js";
+import { TradingService, type TicketAnswered, type TradingSignal } from "../trading/trading.service.js";
 import { JournalService } from "../journal/journal.service.js";
 import { bilanText } from "../journal/journal-bilan.js";
 import { ticketAnswer } from "../trading/ticket-answer.js";
@@ -438,9 +438,10 @@ export class GatewayService implements OnModuleInit, OnModuleDestroy {
     // Un ticket attend : « je confirme » l'envoie, « non » le retire, reconnus ici, jamais par l'IA.
     const ticketNote = await this.answerTicket(conn, text);
     // Devant la phrase : la coupure s'il y en a eu une, et les encarts affichés (Kopilia sait ce qu'il voit).
-    const notes = [conn.cutNote ? CUT_NOTE : "", ticketNote, this.dashboard.describe()].filter(Boolean);
+    const notes = [conn.cutNote ? CUT_NOTE : "", conn.clickNote ?? "", ticketNote, this.dashboard.describe()].filter(Boolean);
     const prompt = notes.length ? `${notes.join("\n")}\n${text}` : text;
     conn.cutNote = false;
+    conn.clickNote = undefined;
     // Les documents déposés partent avec cette phrase : c'est elle qui dit quoi en faire.
     const docs = this.documents.take(conn.sessionId, turnId);
     if (docs.length) {
@@ -461,7 +462,7 @@ export class GatewayService implements OnModuleInit, OnModuleDestroy {
     if (!ticket) return "";
     const answer = ticketAnswer(text);
     if (answer === "cancel") {
-      this.trading.cancelTicket(ticket.id);
+      this.trading.cancelTicket(ticket.id, "voice");
       return `[Ticket ${ticket.id} retiré par l'utilisateur : rien n'est parti chez le courtier. S'il demande autre chose (un autre stop, une autre taille), prépare un nouveau ticket.]`;
     }
     if (answer !== "confirm")
@@ -860,6 +861,15 @@ export class GatewayService implements OnModuleInit, OnModuleDestroy {
         for (const conn of this.conns) this.send(conn, { type: "trading.updated", state });
       }, 150);
       pending.unref();
+    });
+    // Un clic sur le ticket fait foi : la réponse en cours (sa relecture) s'arrête, et le tour suivant sait ce qu'il a choisi.
+    this.trading.on("answered", (a: TicketAnswered) => {
+      if (a.via !== "click") return;
+      for (const conn of this.conns) {
+        if (a.answer === "cancel")
+          conn.clickNote = `[L'utilisateur a refusé au clic le ticket ${a.ticket.id} : rien n'est parti chez le courtier. Ne le lui repropose pas sans qu'il le demande.]`;
+        if (this.hasOngoingReply(conn)) this.interrupt(conn);
+      }
     });
     this.trading.on("signal", (s: TradingSignal) => {
       for (const conn of this.conns) {

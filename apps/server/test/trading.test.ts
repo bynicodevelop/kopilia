@@ -11,7 +11,7 @@ import type { DashboardService } from "../src/dashboard/dashboard.service.js";
 import type { MarketService } from "../src/market/market.service.js";
 import { MarketError } from "../src/market/metaapi.js";
 import { commissionFromDeals, parseAccountInfo, parseTerms, parseTradeResult, type BrokerDeal } from "../src/market/broker.js";
-import { TICKET_TTL_MS, TradingService, splitLegs, tradeState, type TradingSignal } from "../src/trading/trading.service.js";
+import { TICKET_TTL_MS, TradingService, splitLegs, tradeState, type TicketAnswered, type TradingSignal } from "../src/trading/trading.service.js";
 import { ticketAnswer } from "../src/trading/ticket-answer.js";
 import { rLabel } from "../src/trading/trading-texts.js";
 import { tempData } from "./harness.js";
@@ -588,6 +588,52 @@ test("un trade en cours qui a perdu sa boîte la retrouve au démarrage, à ses 
     assert.deepEqual([shape.side, shape.entry, shape.stop, shape.target], ["long", BOX.entry, BOX.stop, BOX.target]);
     assert.equal(t.trading.restoreBoxes(), 0, "une fois suffit");
     assert.deepEqual(t.drawings.remove([box.id]), [], "et elle est gardée comme les autres");
+  } finally {
+    t.done();
+  }
+});
+
+test("une seule annonce : un retrait se dit à l'envoi, une fermeture quand le courtier donne son résultat ; la réponse au clic est signalée", async () => {
+  const t = setup();
+  const answers: TicketAnswered[] = [];
+  t.trading.on("answered", (a) => answers.push(a));
+  const spoken = (id: string) => t.signals.filter((s) => !s.quiet && s.trade?.id === id);
+  try {
+    const pending = await t.trading.prepareOpen({ drawingId: t.box.id });
+    const p = await t.trading.confirm(pending.id, "click");
+    const id = p.trade!.id;
+    const before = spoken(id).length;
+    const cancel = await t.trading.prepareManage({ action: "cancel", trade: id });
+    await t.trading.confirm(cancel.id, "click");
+    await t.trading.sync();
+    assert.equal(t.trading.getTrade(id)!.state, "cancelled");
+    const said = spoken(id).slice(before);
+    assert.equal(said.length, 1, "l'ordre retiré n'est dit qu'une fois");
+    assert.match(said[0].title, /ordre retiré$/);
+
+    const market = await t.trading.prepareOpen({ drawingId: t.box.id, execution: "market" });
+    const m = await t.trading.confirm(market.id, "click");
+    const mid = m.trade!.id;
+    const before2 = spoken(mid).length;
+    const close = await t.trading.prepareManage({ action: "close", trade: mid });
+    await t.trading.confirm(close.id, "click");
+    await t.trading.sync();
+    assert.equal(t.trading.getTrade(mid)!.state, "closed");
+    const said2 = spoken(mid).slice(before2);
+    assert.deepEqual(
+      said2.map((s) => s.kind),
+      ["closed"],
+      "la fermeture est dite une fois, avec son résultat",
+    );
+
+    const refused = await t.trading.prepareOpen({ drawingId: t.box.id });
+    t.trading.cancelTicket(refused.id, "click");
+    assert.deepEqual(
+      answers.map((a) => `${a.answer}:${a.via}`),
+      ["confirm:click", "confirm:click", "confirm:click", "confirm:click", "cancel:click"],
+    );
+    assert.equal(t.trading.cancelTicket(refused.id, "click"), undefined, "déjà retiré : rien de plus");
+    assert.equal(answers.length, 5);
   } finally {
     t.done();
   }

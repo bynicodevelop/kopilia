@@ -116,6 +116,13 @@ export interface ManageRequest {
   eraseBox?: boolean;
 }
 
+/** L'utilisateur a répondu à un ticket : au clic (l'écran) ou à la voix. */
+export interface TicketAnswered {
+  ticket: Ticket;
+  answer: "confirm" | "cancel";
+  via: "click" | "voice";
+}
+
 /** Le ticket en attente, avec ce qui partira chez le courtier sur confirmation. */
 interface PendingTicket {
   ticket: Ticket;
@@ -146,7 +153,7 @@ interface TradeRow {
  */
 @Injectable()
 export class TradingService
-  extends EventEmitter<{ changed: []; signal: [TradingSignal]; confirmed: [Trade]; noted: [Trade] }>
+  extends EventEmitter<{ changed: []; signal: [TradingSignal]; confirmed: [Trade]; noted: [Trade]; answered: [TicketAnswered] }>
   implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy
 {
   /** Remplaçables en test. */
@@ -161,6 +168,8 @@ export class TradingService
   private pending?: PendingTicket;
   /** Les trades dont la boîte s'efface quand ils se terminent chez le courtier (retrait ou fermeture confirmés). */
   private readonly eraseOnEnd = new Set<string>();
+  /** Les retraits et fermetures confirmés : leur fin, relue chez le courtier, n'est annoncée qu'une fois. */
+  private readonly endRequested = new Map<string, TicketAction>();
   private timer?: NodeJS.Timeout;
   private ticketTimer?: NodeJS.Timeout;
   private syncRun?: Promise<void>;
@@ -543,8 +552,8 @@ export class TradingService
     this.assertOrders();
     await this.sync();
     const trade = this.findTrade(req);
-    const account = await this.tradableAccount();
-    const { value: terms, bid, ask } = await this.ensureTerms(trade.symbol, true);
+    // Le compte et les conditions du produit relus ensemble : le ticket est prêt plus vite.
+    const [account, { value: terms, bid, ask }] = await Promise.all([this.tradableAccount(), this.ensureTerms(trade.symbol, true)]);
     const open = trade.legs.filter((l) => l.state === "open" && l.positionId);
     const pendingLegs = trade.legs.filter((l) => l.state === "pending" && l.orderId);
     const now = trade.side === "long" ? bid : ask;
@@ -667,13 +676,14 @@ export class TradingService
     return this.hold({ ticket: { ...base, text }, requests, terms });
   }
 
-  /** L'utilisateur renonce au ticket (ou il en prépare un autre). */
-  cancelTicket(id?: string): Ticket | undefined {
+  /** L'utilisateur renonce au ticket (ou il en prépare un autre) ; `via` : sa réponse, au clic ou à la voix. */
+  cancelTicket(id?: string, via?: "click" | "voice"): Ticket | undefined {
     const t = this.pending?.ticket;
     if (!t || (id && t.id !== id)) return undefined;
     this.pending = undefined;
     clearTimeout(this.ticketTimer);
     this.emit("changed");
+    if (via) this.emit("answered", { ticket: t, answer: "cancel", via });
     return t;
   }
 
@@ -688,6 +698,8 @@ export class TradingService
     this.pending = undefined;
     clearTimeout(this.ticketTimer);
     this.emit("changed");
+    // Le bouton fait foi : la voix qui relisait le ticket se tait (gateway).
+    this.emit("answered", { ticket: p.ticket, answer: "confirm", via });
     if (p.ticket.expiresAt <= this.now()) throw new TradingError("le ticket a expiré : rien n'est parti, demande-le de nouveau");
     this.assertOrders();
     const quiet = via === "voice";
@@ -768,6 +780,7 @@ export class TradingService
       }
     }
     if (done && t.eraseBox) this.eraseOnEnd.add(trade.id);
+    if (done && (t.action === "cancel" || t.action === "close")) this.endRequested.set(trade.id, t.action);
     if (done && (t.action === "breakeven" || t.action === "modify")) {
       const quote = this.terms.get(trade.symbol);
       const price = quote ? (trade.side === "long" ? quote.bid : quote.ask) : undefined;
@@ -807,7 +820,8 @@ export class TradingService
       return { ok: false, text, trade };
     }
     const text = `${trade.name} : ${what}.${errors.length ? ` Attention : ${errors.length} demande${errors.length > 1 ? "s" : ""} sans succès (${errors[0]}).` : ""}`;
-    if (!quiet) this.signal({ kind: "placed", trade, title: `${trade.name} : ${what}`, quiet, line: text });
+    // Une fermeture s'annonce une fois, quand la relecture chez le courtier donne son résultat ; ici, l'écran seulement.
+    if (!quiet) this.signal({ kind: "placed", trade, title: `${trade.name} : ${what}`, quiet: t.action === "close", line: text });
     return { ok: true, text, trade };
   }
 
@@ -1146,9 +1160,12 @@ export class TradingService
             kind: "closed",
             trade,
             title: `${trade.name} : ordre retiré`,
+            // Retiré par un ticket de Kopilia : déjà dit à l'envoi (ou par la réponse à « je confirme »).
+            ...(this.endRequested.get(trade.id) === "cancel" ? { quiet: true } : {}),
             line: `${trade.name} : ordre en attente retiré (ou expiré) chez le courtier.`,
           });
         }
+        if (!isLiveTrade(trade.state)) this.endRequested.delete(trade.id);
         await this.remind(trade, positions);
       }
       if (changed) this.emit("changed");

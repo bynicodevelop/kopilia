@@ -11,6 +11,8 @@ export interface Conn {
   latestTurn: string;
   /** L'utilisateur a coupé Kopilia : le tour suivant le signale à Claude. */
   cutNote: boolean;
+  /** Sa réponse au clic à un ticket, que le tour suivant signale à Claude (un refus : rien n'est parti). */
+  clickNote?: string;
   /** Énoncés en cours (ouverts, pas encore transcrits) : l'utilisateur parle. */
   openUtterances: Set<number>;
   /** L'écran peut faire parler Kopilia (premier geste dans la page : son autorisé, micro ouvert) : il peut lui parler de lui-même. */

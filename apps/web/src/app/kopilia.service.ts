@@ -1134,7 +1134,9 @@ export class KopiliaService {
   }
 
   /** Le ticket confirmé au clic (comme « je confirme ») : ses ordres partent chez le courtier. */
+  /** Le bouton du ticket fait foi : Kopilia, s'il le relisait encore, se tait tout de suite (comme « stop »). */
   confirmTicket(id: string): void {
+    this.cutForTicket();
     void this.tradingStore.confirm(id);
   }
 
@@ -1144,7 +1146,13 @@ export class KopiliaService {
   }
 
   cancelTicket(id: string): void {
+    this.cutForTicket();
     void this.tradingStore.cancel(id);
+  }
+
+  /** Une réponse au clic à un ticket coupe la phrase en cours (le son déjà arrivé compris) ; rien à couper : rien n'est envoyé. */
+  private cutForTicket(): void {
+    if (this.canInterrupt() || this.replyPending()) this.interrupt();
   }
 
   /** Dit au serveur si la page est cachée (il ne le sait que par elle). */

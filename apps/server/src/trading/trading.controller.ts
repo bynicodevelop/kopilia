@@ -49,7 +49,7 @@ export class TradingScreenController {
 
   @Post("tickets/:id/cancel")
   cancel(@Param("id") id: string) {
-    return { cancelled: !!this.trading.cancelTicket(id) };
+    return { cancelled: !!this.trading.cancelTicket(id, "click") };
   }
 
   /** La marge d'une boîte telle qu'on la règle (« Risque… ») : le calcul du courtier, rien n'est passé. */
@@ -271,7 +271,7 @@ export class TradingControlController {
       ...(ticket.warnings.length ? { warnings: ticket.warnings } : {}),
       ...(remind ? { tiers: remind } : {}),
       size: lotsLabel(ticket.lots),
-      note: "Rien n'est parti. Relis le ticket à l'utilisateur (readback, et les avertissements) ; il est à l'écran. L'ordre ne part que s'il dit « je confirme » ou s'il clique sur le ticket, dans les 90 secondes : tu ne peux pas le confirmer toi-même. « Annule » ou « non » le retire.",
+      note: "Rien n'est parti. Relis le ticket à l'utilisateur en une phrase courte (readback, et les avertissements), puis demande « tu confirmes ? ». Ne lui explique pas comment confirmer : le ticket est à l'écran avec ses boutons, il le sait. L'ordre ne part que s'il dit « je confirme » ou s'il clique, dans les 90 secondes : tu ne peux pas le confirmer toi-même. « Annule » ou « non » le retire ; un clic sur le ticket te coupe.",
     };
   }
 }
