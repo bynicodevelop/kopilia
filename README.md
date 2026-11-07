@@ -16,6 +16,7 @@ Tu maintiens une touche, tu parles, Kopilia te répond à voix haute : il ouvre 
 - **Tes cours en direct** : les graphiques de ton courtier (via MetaApi), de la minute au mois, jusqu'à 12 à l'écran.
 - **Tous tes produits** : matières premières, indices, devises, avec le prix et la variation du jour.
 - **Compte à rebours** : le temps qui reste avant la clôture de la bougie, sous le dernier prix.
+- **Courtier en pause le week-end** : marchés fermés, Kopilia met ton compte MetaApi en pause pour que tu ne le paies pas pour rien, puis le rallume le dimanche soir. Besoin d'un graphique le samedi ? « Rallume le courtier ».
 
 ### Ton analyse technique
 - **Indicateurs** : moyennes mobiles et RSI, réglés à la voix, produit par produit.
