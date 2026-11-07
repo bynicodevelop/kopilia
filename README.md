@@ -16,7 +16,7 @@ Tu maintiens une touche, tu parles, Kopilia te répond à voix haute : il ouvre 
 - **Tes cours en direct** : les graphiques de ton courtier (via MetaApi), de la minute au mois, jusqu'à 12 à l'écran.
 - **Tous tes produits** : matières premières, indices, devises, avec le prix et la variation du jour.
 - **Compte à rebours** : le temps qui reste avant la clôture de la bougie, sous le dernier prix.
-- **Courtier en pause le week-end** : marchés fermés, Kopilia met ton compte MetaApi en pause pour que tu ne le paies pas pour rien, puis le rallume le dimanche soir. Besoin d'un graphique le samedi ? « Rallume le courtier ».
+- **Courtier en pause le week-end** : marchés fermés, Kopilia met ton compte MetaApi en pause pour que tu ne le paies pas pour rien[\*](#metaapi-est-payant), puis le rallume le dimanche soir. Besoin d'un graphique le samedi ? « Rallume le courtier ».
 
 ### Ton analyse technique
 - **Indicateurs** : moyennes mobiles et RSI, réglés à la voix, produit par produit.
@@ -66,7 +66,7 @@ Tu maintiens une touche, tu parles, Kopilia te répond à voix haute : il ouvre 
 |---|---|---|
 | **Indispensable** | Un **Mac Apple Silicon** (M1 ou plus récent) et environ **4 Go** d'espace libre | La voix et la transcription tournent sur le Mac |
 | **Indispensable** | Un abonnement **Claude** qui inclut **Claude Code** : Pro, Max ou Ultra ([voir les offres](https://claude.com/pricing)) | C'est le cerveau de Kopilia. L'offre gratuite ne suffit pas |
-| **Indispensable** | Un compte **[MetaApi](https://app.metaapi.cloud/sign-up)** relié à ton compte **MetaTrader 4 ou 5** ([tarifs](https://metaapi.cloud/#pricing)) | Les cours, les graphiques et, si tu le veux, les ordres |
+| **Indispensable** | Un compte **[MetaApi](https://app.metaapi.cloud/sign-up)** relié à ton compte **MetaTrader 4 ou 5** ([tarifs](https://metaapi.cloud/#pricing)) | Les cours, les graphiques et, si tu le veux, les ordres. Payant à part : quelques dollars par mois ([détails](#metaapi-est-payant)) |
 | Conseillé | Un casque ou des écouteurs | Pour que Kopilia ne s'entende pas lui-même |
 | Facultatif | Un bot **Telegram** | Recevoir tes alertes quand tu n'es pas devant le Mac |
 
@@ -178,7 +178,12 @@ KOPILIA_METAAPI_TOKEN=colle-ici-ton-jeton
 KOPILIA_METAAPI_ACCOUNT_ID=colle-ici-l-identifiant-du-compte
 ```
 
-MetaApi facture chaque heure où ton compte est déployé (environ 0,0126 $ en haute fiabilité, la moitié en fiabilité normale). Kopilia le met donc **en pause le week-end**, marchés fermés : du vendredi 23 h 05 au dimanche 22 h 30, heure de Paris. Tes stops et tes objectifs restent chez ton courtier.
+#### MetaApi est payant
+
+Autant le savoir dès le départ : MetaApi est un service à part, payant, et Kopilia ne touche rien dessus. C'est le pont entre Kopilia et ton compte MetaTrader : c'est lui qui apporte tes cours en direct. Il facture chaque heure où ton compte est déployé (environ 0,0126 $ en haute fiabilité, la moitié en fiabilité normale), soit quelques dollars par mois : de 4 à 9 $ environ s'il reste allumé en continu. Les tarifs à jour sont sur [le site de MetaApi](https://metaapi.cloud/#pricing).
+
+D'où la **pause du week-end** : marchés fermés, du vendredi 23 h 05 au dimanche 22 h 30 (heure de Paris), Kopilia met ton compte en pause. En pause, il coûte une douzaine de fois moins cher. Tes stops et tes objectifs restent chez ton courtier.
+
 - Tu veux un graphique pendant la pause ? Dis « rallume le courtier », ou clique sur « Courtier en pause » en haut de la page. Il faut une à trois minutes ; le compte se rendort tout seul après 20 minutes sans usage.
 - La pause de nuit (23 h → 5 h) existe en option (« mets le courtier en pause la nuit »). Elle rapporte peu, car chaque rallumage coûte autant que six heures et demie allumé.
 - Kopilia met le compte en pause, il ne le supprime jamais. `KOPILIA_BROKER_PAUSE=0` dans `.env` coupe la pause.
