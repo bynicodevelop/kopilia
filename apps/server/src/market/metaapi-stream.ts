@@ -72,6 +72,8 @@ export class MetaApiStream extends EventEmitter<{ price: [string, RawQuote]; ran
   private lastError = "";
   private retryTimer?: NodeJS.Timeout;
   private stopped = false;
+  /** Compte MetaApi en pause : la connexion est refermée, et rien n'est retenté avant `resume`. */
+  private suspended = false;
 
   constructor(
     private readonly token: string,
@@ -98,9 +100,26 @@ export class MetaApiStream extends EventEmitter<{ price: [string, RawQuote]; ran
     this.reset();
   }
 
+  /** Compte en pause : la connexion se ferme sans bruit, et rien n'est retenté. */
+  pause(): void {
+    this.suspended = true;
+    clearTimeout(this.retryTimer);
+    this.retryTimer = undefined;
+    this.reset();
+  }
+
+  /** Compte rallumé : la connexion se rouvre tout de suite, sans l'attente des ratés d'avant. */
+  resume(): void {
+    if (!this.suspended) return;
+    this.suspended = false;
+    this.failures = 0;
+    this.lastError = "";
+    void this.sync();
+  }
+
   /** Met les abonnements d'accord avec les produits suivis ; une demande arrivée en route est traitée à la suite. */
   private async sync(): Promise<void> {
-    if (this.stopped || this.retryTimer) return; // en attente d'un nouvel essai : il reprendra la liste du moment
+    if (this.stopped || this.suspended || this.retryTimer) return; // en attente d'un nouvel essai : il reprendra la liste du moment
     if (this.running) {
       this.again = true;
       return;
@@ -134,7 +153,7 @@ export class MetaApiStream extends EventEmitter<{ price: [string, RawQuote]; ran
             .subscribeToMarketData(s, [{ type: "candles", timeframe: "1m", intervalInMilliseconds: QUOTE_INTERVAL_MS }], undefined, false)
             .catch((e: unknown) => this.logger.warn(`MetaApi : pas de bougie minute pour ${s} (${this.describe(e)})`, "market"));
         }
-      } while (this.again && !this.stopped);
+      } while (this.again && !this.stopped && !this.suspended);
       this.failures = 0;
       this.lastError = "";
     } catch (e) {
@@ -159,6 +178,7 @@ export class MetaApiStream extends EventEmitter<{ price: [string, RawQuote]; ran
       await conn.connect();
       await conn.waitSynchronized({ timeoutInSeconds: SYNC_TIMEOUT_S });
       if (this.stopped) throw new Error("arrêt du serveur");
+      if (this.suspended) throw new Error("compte en pause");
     } catch (e) {
       void closeQuietly(conn, api);
       throw e;
@@ -225,6 +245,8 @@ export class MetaApiStream extends EventEmitter<{ price: [string, RawQuote]; ran
 
   /** Connexion ou abonnement ratés : tout est refermé, et retenté plus tard. */
   private fail(e: unknown) {
+    // Mis en pause pendant l'ouverture : la connexion est déjà refermée, rien à retenter.
+    if (this.suspended) return this.reset();
     const message = this.describe(e);
     const delay = this.retryMs[Math.min(this.failures, this.retryMs.length - 1)];
     this.failures++;

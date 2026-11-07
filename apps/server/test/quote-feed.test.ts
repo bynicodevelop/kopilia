@@ -269,3 +269,21 @@ test("cotations des alertes : suivies sans écran, sans être montrées aux écr
   assert.equal(feed.latest("XAUUSD"), undefined, "oublié");
   feed.stop();
 });
+
+test("cotations : compte en pause, plus aucune interrogation ; rallumé, tout de suite", async () => {
+  const { feed, calls } = feedWith(async () => ({ bid: 1, time: T - 1_000 }));
+  feed.setSymbols(["A"]);
+  feed.setListening(1);
+  await sleep(30);
+  feed.suspend();
+  await sleep(10);
+  const paused = calls.length;
+  feed.setSymbols(["A", "B"]); // un encart ouvert pendant la pause
+  await sleep(40);
+  assert.equal(calls.length, paused, "rien n'est demandé en pause");
+  assert.ok(feed.latest("A"), "la dernière cotation reste connue");
+  feed.resume();
+  await sleep(20);
+  feed.stop();
+  assert.ok(calls.slice(paused).includes("A") && calls.slice(paused).includes("B"), `après la pause : ${calls.slice(paused).join(",")}`);
+});

@@ -177,6 +177,11 @@ KOPILIA_METAAPI_TOKEN=colle-ici-ton-jeton
 KOPILIA_METAAPI_ACCOUNT_ID=colle-ici-l-identifiant-du-compte
 ```
 
+MetaApi facture chaque heure où ton compte est déployé (environ 0,0126 $ en haute fiabilité, la moitié en fiabilité normale). Kopilia le met donc **en pause le week-end**, marchés fermés : du vendredi 23 h 05 au dimanche 22 h 30, heure de Paris. Tes stops et tes objectifs restent chez ton courtier.
+- Tu veux un graphique pendant la pause ? Dis « rallume le courtier », ou clique sur « Courtier en pause » en haut de la page. Il faut une à trois minutes ; le compte se rendort tout seul après 20 minutes sans usage.
+- La pause de nuit (23 h → 5 h) existe en option (« mets le courtier en pause la nuit »). Elle rapporte peu, car chaque rallumage coûte autant que six heures et demie allumé.
+- Kopilia met le compte en pause, il ne le supprime jamais. `KOPILIA_BROKER_PAUSE=0` dans `.env` coupe la pause.
+
 ### Tes produits
 
 Les produits que tu trades, avec leur nom courant ou leur symbole : Kopilia retrouve tout seul le symbole de ton courtier (NAS100, US100, USTEC…).

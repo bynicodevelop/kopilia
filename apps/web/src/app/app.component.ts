@@ -15,6 +15,7 @@ import { SetupsPanelComponent } from "./setups/setups-panel.component";
 import { NoticesComponent } from "./shell/notices.component";
 import { CallBarComponent } from "./shell/call-bar.component";
 import { TranscriptComponent } from "./shell/transcript.component";
+import { BrokerPillComponent } from "./shell/broker-pill.component";
 import { formatDateTime } from "./format";
 
 /** Le glisser porte des fichiers (et non du texte ou un lien de la page). */
@@ -42,6 +43,7 @@ function hasFiles(e: DragEvent): boolean {
     NoticesComponent,
     CallBarComponent,
     TranscriptComponent,
+    BrokerPillComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
@@ -105,6 +107,7 @@ function hasFiles(e: DragEvent): boolean {
       <header>
         <span class="dot" [class.on]="kopilia.connected()" [attr.title]="kopilia.connected() ? 'Connecté' : 'Hors ligne'"></span>
         <span class="brand">Kopilia</span>
+        <kp-broker-pill />
         <span class="spacer"></span>
         @if (kopilia.panels().length) {
           <button type="button" class="textbtn" title="Fermer tous les encarts du tableau de bord" (click)="kopilia.closeAllPanels()">Tout fermer</button>

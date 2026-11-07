@@ -160,6 +160,11 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
   private accountRead?: Promise<Account>;
   private symbols?: { at: number; value: string[] };
   private specs = new Map<string, Spec>();
+  /**
+   * Compte en pause (ou en train de se rallumer) : la raison à dire, et rien
+   * n'est demandé à MetaApi. Posé par BrokerPauseService.
+   */
+  private pauseGate?: () => string | undefined;
 
   constructor(
     private readonly config: ConfigService,
@@ -195,7 +200,8 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       const symbols = await this.symbolList(account);
       this.logger.log(`MetaApi prêt : compte « ${account.name} », ${symbols.length} symboles`, "market");
     } catch (e) {
-      this.logger.warn(`MetaApi pas prêt au démarrage : ${describe(e)}`, "market");
+      if (isPaused(e)) this.logger.log(`MetaApi en pause au démarrage : ${describe(e)}`, "market");
+      else this.logger.warn(`MetaApi pas prêt au démarrage : ${describe(e)}`, "market");
     }
   }
 
@@ -215,7 +221,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (e) {
       const error = describe(e);
-      this.logger.warn(`cours MetaApi indisponibles : ${error}`, "market");
+      if (!isPaused(e)) this.logger.warn(`cours MetaApi indisponibles : ${error}`, "market");
       return { error };
     }
   }
@@ -266,7 +272,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (e) {
       const error = describe(e);
-      this.logger.warn(`historique MetaApi indisponible : ${error}`, "market");
+      if (!isPaused(e)) this.logger.warn(`historique MetaApi indisponible : ${error}`, "market");
       return { error };
     }
   }
@@ -613,6 +619,8 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
    * chaque demande (il peut être en cours de déploiement).
    */
   private async resolveAccount(): Promise<Account> {
+    const paused = this.pauseGate?.();
+    if (paused) throw new MarketError(paused, "paused");
     if (this.account && Date.now() - this.account.at < ACCOUNT_TTL_MS) return this.account.value;
     this.accountRead ??= this.readAccount().finally(() => (this.accountRead = undefined));
     return this.accountRead;
@@ -655,6 +663,60 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     }
     this.account = { at: Date.now(), value: account };
     return account;
+  }
+
+  /* ------------------------ Pause du compte (économies) ------------------------ */
+
+  /** Branche la pause du compte : tant que `gate` rend une raison, aucune demande ne part chez MetaApi. */
+  setPauseGate(gate: () => string | undefined) {
+    this.pauseGate = gate;
+  }
+
+  /** Le compte est en pause (ou se rallume) : les tâches de fond attendent sans rien demander. */
+  get paused(): boolean {
+    return !!this.pauseGate?.();
+  }
+
+  /** L'état du compte chez MetaApi (déployé ou non, connecté au courtier), même en pause. */
+  async accountState(): Promise<{ id: string; name: string; state: string; connectionStatus?: string }> {
+    const id = this.config.metaApiAccountId || (await this.onlyAccount());
+    const dto = await this.get<AccountDto>(
+      `${this.config.metaApiProvisioningUrl}/users/current/accounts/${enc(id)}`,
+      "compte MetaApi introuvable : vérifie KOPILIA_METAAPI_ACCOUNT_ID dans le fichier .env de Kopilia",
+    );
+    return { id: dto._id || id, name: dto.name || id, state: dto.state ?? "UNKNOWN", connectionStatus: dto.connectionStatus };
+  }
+
+  /**
+   * Allume (deploy) ou met en pause (undeploy) le compte chez MetaApi. Le
+   * compte n'est jamais supprimé : le rajouter serait refacturé (2,10 $).
+   */
+  async accountPower(id: string, action: "deploy" | "undeploy"): Promise<void> {
+    const res = await this.slot(() =>
+      this.fetchImpl(`${this.config.metaApiProvisioningUrl}/users/current/accounts/${enc(id)}/${action}`, {
+        method: "POST",
+        headers: { "auth-token": this.config.metaApiToken, accept: "application/json" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      }),
+    ).catch((e: Error) => {
+      throw new MarketError(`MetaApi injoignable (${e.name === "TimeoutError" ? "délai dépassé" : e.message})`);
+    });
+    if (res.ok) return;
+    const message = await res
+      .json()
+      .then((b) => (b as { message?: unknown })?.message)
+      .then((m) => (typeof m === "string" ? m.slice(0, 200) : ""))
+      .catch(() => "");
+    if (res.status === 401) throw new MarketError("jeton MetaApi refusé : vérifie KOPILIA_METAAPI_TOKEN dans le fichier .env de Kopilia");
+    throw new MarketError(
+      `MetaApi a refusé ${action === "deploy" ? "le rallumage" : "la mise en pause"} (HTTP ${res.status}${message ? ` : ${message}` : ""})`,
+    );
+  }
+
+  /** Après un rallumage : le compte est relu (région, adresses), les graphiques gardés oubliés. */
+  forgetAccount() {
+    this.account = undefined;
+    this.chartLoads.clear();
   }
 
   /** Sans identifiant configuré : le seul compte de l'utilisateur (ou le seul déployé). */
@@ -853,6 +915,11 @@ function sourceOf(account: Account): string {
 /** Produit introuvable chez le courtier, avec les symboles proches s'il y en a. */
 function notFound(query: string, suggestions: string[]): { query: string; symbol?: undefined; error: string; suggestions?: string[] } {
   return { query, error: "introuvable chez le courtier", ...(suggestions.length ? { suggestions } : {}) };
+}
+
+/** Compte en pause : attendu, rien à journaliser. */
+function isPaused(e: unknown): boolean {
+  return e instanceof MarketError && e.code === "paused";
 }
 
 function describe(e: unknown): string {

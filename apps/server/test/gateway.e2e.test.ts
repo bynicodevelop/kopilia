@@ -161,6 +161,7 @@ before(async () => {
       KOPILIA_METAAPI_CLIENT_URL: metaApiUrl,
       KOPILIA_METAAPI_DATA_URL: metaApiUrl,
       KOPILIA_METAAPI_STREAM: "0", // le flux WebSocket irait chez le vrai MetaApi : les cotations sont interrogées
+      KOPILIA_BROKER_PAUSE: "0", // la pause du compte a ses propres tests ; un week-end, elle mettrait le faux compte en pause
       KOPILIA_AGENT_TOKEN: AGENT_TOKEN,
       KOPILIA_ACTION_TOKEN: ACTION_TOKEN,
       KOPILIA_LEARNING_TOKEN: LEARNING_TOKEN,

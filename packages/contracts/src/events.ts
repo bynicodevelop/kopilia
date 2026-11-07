@@ -7,6 +7,7 @@ import { viewSpecSchema } from "./views.js";
 import { newsItemSchema } from "./news.js";
 import { tradingStateSchema } from "./trading.js";
 import { robotSummarySchema } from "./algo.js";
+import { brokerStatusSchema } from "./broker.js";
 
 /** Version du protocole de transport (enveloppe + événements). */
 export const PROTOCOL_VERSION = 1 as const;
@@ -555,6 +556,17 @@ export const robotsUpdated = z.object({
   robots: z.array(robotSummarySchema),
 });
 
+/**
+ * Le compte MetaApi allumé, en pause ou en train de se rallumer : l'écran
+ * l'affiche en haut (et le délai d'un rallumage). Envoyé à la connexion et à
+ * chaque changement.
+ */
+export const brokerStatusEvent = z.object({
+  ...envelopeBase,
+  type: z.literal("broker.status"),
+  status: brokerStatusSchema,
+});
+
 export const journalChanged = z.object({
   ...envelopeBase,
   type: z.literal("journal.changed"),
@@ -604,6 +616,7 @@ export const serverMessage = z.discriminatedUnion("type", [
   tradingSignal,
   journalChanged,
   robotsUpdated,
+  brokerStatusEvent,
   journalShow,
   errorEvent,
 ]);

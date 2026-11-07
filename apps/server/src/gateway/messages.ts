@@ -2,7 +2,7 @@
  * Messages de la passerelle construits à partir des lignes en base : purs,
  * testés à plat. Un message n'est construit qu'à un seul endroit.
  */
-import { JobState, ServerMessage } from "@kopilia/contracts";
+import { JobState, ServerMessage, wakeDurationLabel } from "@kopilia/contracts";
 import type { ApprovalRow, JobRow } from "../jobs/job.service.js";
 import type { BriefRow } from "../veille/brief.service.js";
 import type { SkillRow } from "../learning/skill.service.js";
@@ -16,6 +16,7 @@ import type { PassDone } from "../setups/setup-agents.service.js";
 import { levelsText, scenarioLine, when } from "../setups/setup-texts.js";
 import type { AwayNews } from "../channels/away-texts.js";
 import type { TradingSignal } from "../trading/trading.service.js";
+import type { BrokerReady } from "../market/broker-pause.service.js";
 
 /** Omit distributif : préserve l'union discriminée (sinon seules les clés communes survivent). */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -184,6 +185,17 @@ export function tradeReport(s: TradingSignal, now = Date.now()): Report {
     title: s.title,
     prompt: `[Trade] ${s.line}\n${instruction}`,
     urgent: s.kind !== "placed",
+  };
+}
+
+/** Le courtier qu'il a fait rallumer est prêt : dit tout de suite, et ce qu'il attendait reprend. */
+export function brokerReadyReport(r: BrokerReady, now = Date.now()): Report {
+  return {
+    turnId: `broker_ready_${now}`,
+    jobId: "broker",
+    title: "Courtier rallumé",
+    prompt: `[Courtier] Le courtier est rallumé (en ${wakeDurationLabel(r.ms)}) : prix, graphiques et ordres refonctionnent.\n[Dis-le-lui en une phrase. S'il attendait quelque chose (un prix, un graphique, un ordre), reprends-le maintenant ; les graphiques à l'écran se rechargent seuls.]`,
+    urgent: true,
   };
 }
 

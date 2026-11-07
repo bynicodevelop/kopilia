@@ -28,6 +28,7 @@ import {
   opportunityReport,
   searchReport,
   tradeReport,
+  brokerReadyReport,
   reviewReport,
   reviewFailedReport,
   eveningReport,
@@ -50,6 +51,7 @@ import { SetupsUpdatedView } from "../setups/setups-view.js";
 import { abandonedTexts, proposedTexts, searchedTexts } from "../setups/setup-texts.js";
 import { SetupAgentsService } from "../setups/setup-agents.service.js";
 import { TradingService, type TicketAnswered, type TradingSignal } from "../trading/trading.service.js";
+import { BrokerPauseService, type BrokerReady } from "../market/broker-pause.service.js";
 import { JournalService } from "../journal/journal.service.js";
 import { bilanText } from "../journal/journal-bilan.js";
 import { ticketAnswer } from "../trading/ticket-answer.js";
@@ -120,6 +122,7 @@ export class GatewayService implements OnModuleInit, OnModuleDestroy {
     private readonly trading: TradingService,
     @Optional() private readonly journal?: JournalService,
     @Optional() private readonly robots?: RobotService,
+    @Optional() private readonly broker?: BrokerPauseService,
   ) {}
 
   onModuleInit() {
@@ -132,6 +135,7 @@ export class GatewayService implements OnModuleInit, OnModuleDestroy {
     this.wireTrading();
     this.wireJournal();
     this.wireRobots();
+    this.wireBroker();
   }
 
   /**
@@ -193,6 +197,7 @@ export class GatewayService implements OnModuleInit, OnModuleDestroy {
     this.send(conn, { type: "setups.updated", ...this.setupsView.build() });
     this.send(conn, { type: "trading.updated", state: this.trading.state() });
     if (this.robots) this.send(conn, { type: "robots.updated", robots: this.robots.list() });
+    if (this.broker?.enabled) this.send(conn, { type: "broker.status", status: this.broker.status() });
     for (const q of this.market.feed.snapshot()) this.send(conn, { type: "market.quote", ...q });
     this.market.feed.setListening(this.conns.size);
     this.logger.log(`session ${sessionId} connectée`, "gateway");
@@ -886,6 +891,22 @@ export class GatewayService implements OnModuleInit, OnModuleDestroy {
       const target = [...this.conns].find((c) => c.inCall);
       if (target) this.report(target, tradeReport(s), news);
       else this.outOfSight(news);
+    });
+  }
+
+  /**
+   * Le compte MetaApi s'endort ou se rallume : l'indicateur de tous les
+   * écrans. Rallumé à sa demande (à la voix), Kopilia le lui dit, en appel.
+   */
+  private wireBroker() {
+    if (!this.broker?.enabled) return;
+    this.broker.on("status", (status) => {
+      for (const conn of this.conns) this.send(conn, { type: "broker.status", status });
+    });
+    this.broker.on("ready", (r: BrokerReady) => {
+      if (!r.requested) return;
+      const target = [...this.conns].find((c) => c.inCall);
+      if (target) this.report(target, brokerReadyReport(r));
     });
   }
 

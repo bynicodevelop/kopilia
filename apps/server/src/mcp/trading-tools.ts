@@ -188,6 +188,37 @@ export function registerTradingTools(server: McpServer, api: Api) {
   );
 
   server.tool(
+    "broker_status",
+    "L'état du courtier (le compte MetaApi qui relie Kopilia à Blueberry) : allumé, en pause (le week-end, la nuit, à sa demande) ou en train de se rallumer, et les règles de pause. Pour « le courtier est allumé ? », « ça coûte combien MetaApi ? ».",
+    {},
+    async () => text(await api("/broker")),
+  );
+
+  server.tool(
+    "broker_wake",
+    "Rallume le courtier en pause (« rallume le courtier », ou dès qu'il demande un prix, un graphique ou un ordre et qu'un outil répond que le courtier est en pause : rallume-le sans lui demander, en le prévenant du délai). Il faut une à trois minutes ; tu lui diras quand il est prêt (ça te reviendra de lui-même). Pendant une pause du week-end ou de la nuit, il se rendort seul après un moment sans usage.",
+    {},
+    async () => text(await api("/broker/wake", { method: "POST", body: "{}" })),
+  );
+
+  server.tool(
+    "broker_pause",
+    "Met le courtier en pause pour économiser (MetaApi facture chaque heure allumée) : à sa demande (« mets le courtier en pause », « éteins le courtier »), ou sur son oui quand tu le lui as proposé. Pendant une pause du week-end ou de la nuit, jusqu'à sa fin ; sinon jusqu'au prochain matin de semaine au plus. Stops et objectifs restent chez le courtier. Refusée avec un trade en cours un jour de marché : dis-lui pourquoi, et force true seulement s'il confirme.",
+    { force: z.boolean().optional().describe("true seulement s'il confirme vouloir la pause malgré un trade en cours") },
+    async (args) => text(await api("/broker/pause", { method: "POST", body: JSON.stringify(args) })),
+  );
+
+  server.tool(
+    "broker_settings",
+    "Les règles de pause du courtier, à sa demande seulement : weekend (par défaut oui : du vendredi 23 h 05 au dimanche 22 h 30, marchés fermés), nights (par défaut non : de 23 h à 5 h, sautée s'il a un trade en cours ou en attente ; elle économise presque rien et coupe ses alertes pendant la séance d'Asie, dis-le-lui une fois).",
+    {
+      weekend: z.boolean().optional().describe("Pause du week-end"),
+      nights: z.boolean().optional().describe("Pause de la nuit, de 23 h à 5 h"),
+    },
+    async (args) => text(await api("/broker/settings", { method: "POST", body: JSON.stringify(args) })),
+  );
+
+  server.tool(
     "journal_analyze",
     "Lance, à sa demande, l'analyse de son trading par l'IA sur une période (« analyse mon trading de la semaine », « où est-ce que je fais des erreurs ? », « est-ce que je change trop d'avis ? ») : ses trades, leurs faits et rejeux, ses fiches, ses notes, ses idées non prises et quelques graphiques figés. Elle tourne en arrière-plan (une à deux minutes) ; son résultat te revient de lui-même et s'affiche à l'écran. Jamais de toi-même.",
     { days: z.number().int().min(1).max(365).optional().describe("La période, en jours (7 par défaut ; « du mois » : 30)") },

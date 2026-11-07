@@ -46,6 +46,8 @@ import { AnalysesController } from "./analyses/analyses.controller.js";
 import { SetupsScreenController } from "./setups/setups-screen.controller.js";
 import { TradingService } from "./trading/trading.service.js";
 import { TradingControlController, TradingScreenController } from "./trading/trading.controller.js";
+import { BrokerPauseService } from "./market/broker-pause.service.js";
+import { BrokerControlController, BrokerScreenController } from "./market/broker.controller.js";
 import { JournalService } from "./journal/journal.service.js";
 import { JournalControlController, JournalScreenController } from "./journal/journal.controller.js";
 import { CandleStore } from "./algo/candle-store.js";
@@ -73,6 +75,8 @@ import { AlgoController } from "./algo/algo.controller.js";
     NewsScreenController,
     TradingScreenController,
     TradingControlController,
+    BrokerScreenController,
+    BrokerControlController,
     JournalScreenController,
     JournalControlController,
     AlgoController,
@@ -104,6 +108,7 @@ import { AlgoController } from "./algo/algo.controller.js";
     ExampleService,
     SetupsUpdatedView,
     TradingService,
+    BrokerPauseService,
     JournalService,
     CandleStore,
     CandleLoaderService,

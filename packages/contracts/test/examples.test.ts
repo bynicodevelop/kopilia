@@ -199,6 +199,20 @@ export const SERVER_EXAMPLES: Record<string, Record<string, unknown>> = {
   "trading.signal": { ...env, type: "trading.signal", kind: "filled", tradeId: "t_1", symbol: "NAS100", title: "Nasdaq : achat exécuté" },
   "journal.changed": { ...env, type: "journal.changed", tradeId: "t_1" },
   "journal.show": { ...env, type: "journal.show", tradeId: "t_1" },
+  "broker.status": {
+    ...env,
+    type: "broker.status",
+    status: {
+      state: "paused",
+      reason: "weekend",
+      since: 1,
+      resumeAt: 2,
+      wakeMs: 70_000,
+      label: "En pause pour le week-end · reprise dimanche à 22 h 30",
+      weekend: true,
+      nights: false,
+    },
+  },
   "robots.updated": {
     ...env,
     type: "robots.updated",

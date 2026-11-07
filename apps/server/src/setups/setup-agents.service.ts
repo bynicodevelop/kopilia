@@ -464,6 +464,8 @@ export class SetupAgentsService extends EventEmitter<SetupAgentsEvents> implemen
 
   /** Rendez-vous arrivés, annonces publiées dont dépend un dossier, puis la file. */
   tick() {
+    // Compte MetaApi en pause : les réveils attendent le rallumage (un agent sans marché ne jugerait rien).
+    if (this.market.paused) return;
     const now = this.now();
     for (const s of this.scenarios.dueWakes()) {
       this.scenarios.clearWake(s.id);

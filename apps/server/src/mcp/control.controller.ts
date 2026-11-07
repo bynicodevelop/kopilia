@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Optional, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { z } from "zod";
 import { ConfigService } from "../config/config.service.js";
 import { JobError, JobKind, JobService } from "../jobs/job.service.js";
@@ -10,6 +10,7 @@ import { CalendarService } from "../calendar/calendar.service.js";
 import { ImpactFilter, Period } from "../calendar/forex-factory.js";
 import { describeDocument, DocumentService } from "../documents/document.service.js";
 import { MarketService } from "../market/market.service.js";
+import { BrokerPauseService } from "../market/broker-pause.service.js";
 import { Period as HistoryPeriod, Session } from "../market/history.js";
 import { MemoryError } from "../memory/memory.service.js";
 import { SkillError, SkillService } from "../learning/skill.service.js";
@@ -94,7 +95,13 @@ export class ControlController {
     private readonly levels: LevelService,
     private readonly logger: AppLogger,
     private readonly trading: TradingService,
+    @Optional() private readonly broker?: BrokerPauseService,
   ) {}
+
+  /** Une demande du dialogue (pas d'un agent) : l'utilisateur se sert du marché, le courtier ne s'endort pas sous ses yeux. */
+  private used(auth?: string) {
+    if (auth?.replace(/^Bearer\s+/i, "") === this.config.internalToken) this.broker?.touch();
+  }
 
   @Post("jobs")
   start(@Body() raw: unknown) {
@@ -190,7 +197,8 @@ export class ControlController {
   /** Dernier prix de produits financiers, en direct du compte MetaTrader (MetaApi). */
   @Get("prices")
   @Access("agent")
-  prices(@Query("symbols") symbols?: string) {
+  prices(@Query("symbols") symbols?: string, @Headers("authorization") auth?: string) {
+    this.used(auth);
     return this.market.prices(symbols?.split(",") ?? []);
   }
 
@@ -204,7 +212,9 @@ export class ControlController {
     @Query("from") from?: string,
     @Query("to") to?: string,
     @Query("session") session?: string,
+    @Headers("authorization") auth?: string,
   ) {
+    this.used(auth);
     return this.market.history(symbols?.split(",") ?? [], {
       period: HISTORY_PERIODS.find((p) => p === period),
       date,
@@ -226,6 +236,7 @@ export class ControlController {
   /** Ouvre le graphique d'un produit, un suivi de plusieurs (ou s'y ajoute), la liste de tous ses produits, ou la liste des setups repérés. */
   @Post("panels")
   async openPanel(@Body() body: { kind?: string; symbol?: string; symbols?: string[]; timeframe?: string; maximize?: boolean }) {
+    this.broker?.touch();
     try {
       if (body.kind === "news") {
         const r = await this.dashboard.openNews(body.symbol);
@@ -412,7 +423,15 @@ export class ControlController {
   closePanel(@Body() body: { panel?: string; all?: boolean; except?: string[] }) {
     try {
       const closed = this.dashboard.close(body.panel, { all: !!body.all, except: Array.isArray(body.except) ? body.except.map(String) : [] });
-      return closed.length ? { closed: closed.map((p) => p.title) } : { closed: [], note: "rien à fermer : aucun encart à l'écran" };
+      if (!closed.length) return { closed: [], note: "rien à fermer : aucun encart à l'écran" };
+      // Plus aucun prix à l'écran, courtier rallumé pendant une pause : le bon moment pour proposer de l'éteindre.
+      const market = this.dashboard.view().panels.some((p) => p.kind === "chart" || p.kind === "quotes" || p.kind === "products");
+      if (!market && this.broker?.awakeInWindow())
+        return {
+          closed: closed.map((p) => p.title),
+          note: "Le courtier a été rallumé pendant une pause et plus rien à l'écran ne s'en sert : propose-lui en une phrase de le remettre en pause (broker_pause sur son oui).",
+        };
+      return { closed: closed.map((p) => p.title) };
     } catch (e) {
       if (e instanceof DashboardError) return { error: e.message };
       throw e;
@@ -424,8 +443,15 @@ export class ControlController {
   /** Valeurs des indicateurs d'un produit (« sma50,ema21,hma9,rsi14 » ; sans longueur, celle d'usage), comme sur le graphique. */
   @Get("indicators")
   @Access("agent")
-  async indicators(@Query("symbol") symbol?: string, @Query("timeframe") timeframe?: string, @Query("list") list?: string, @Query("source") source?: string) {
+  async indicators(
+    @Query("symbol") symbol?: string,
+    @Query("timeframe") timeframe?: string,
+    @Query("list") list?: string,
+    @Query("source") source?: string,
+    @Headers("authorization") auth?: string,
+  ) {
     if (!symbol) return { error: "dis de quel produit (symbol)" };
+    this.used(auth);
     const tf = timeframe || "15m";
     if (!isChartTimeframe(tf)) return { error: `unité de temps inconnue (« ${tf} »)` };
     if (source && !PRICE_SOURCES.includes(source as PriceSource)) return { error: `source inconnue (« ${source} ») : ${PRICE_SOURCES.join(", ")}` };

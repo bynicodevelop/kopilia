@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from "@angular/core";
-import type { ActivityItem, DrawingShape, Indicator, NewsItem, RobotSummary, Scenario, ServerMessage, ViewData } from "@kopilia/contracts";
+import type { ActivityItem, BrokerStatus, DrawingShape, Indicator, NewsItem, RobotSummary, Scenario, ServerMessage, ViewData } from "@kopilia/contracts";
 import { ScreenApi } from "./api";
 import { MicCapture } from "./audio/mic-capture";
 import { PcmPlayer } from "./audio/player";
@@ -120,6 +120,10 @@ export class KopiliaService {
   readonly scenarios = this.setups.scenarios;
   /** Les robots du laboratoire de stratégies (robots.updated), pour l'encart Robots. */
   readonly robots = signal<RobotSummary[]>([]);
+  /** Le compte MetaApi : allumé, en pause ou en train de se rallumer (l'indicateur en haut de la page). */
+  readonly broker = signal<BrokerStatus | null>(null);
+  /** Monte à chaque rallumage du courtier : les graphiques restés sans bougies se rechargent. */
+  readonly brokerWakes = signal(0);
   readonly setupStats = this.setups.stats;
   readonly proposedSetups = this.setups.proposed;
   readonly setupsOpen = this.setups.open;
@@ -407,6 +411,12 @@ export class KopiliaService {
       case "robots.updated":
         this.robots.set(msg.robots);
         break;
+      case "broker.status": {
+        const before = this.broker()?.state;
+        this.broker.set(msg.status);
+        if (msg.status.state === "on" && before && before !== "on") this.brokerWakes.update((n) => n + 1);
+        break;
+      }
       case "setups.updated":
         this.setups.updated(msg);
         break;
@@ -993,6 +1003,15 @@ export class KopiliaService {
 
   closeAllPanels(): Promise<void> {
     return this.dashboard.closeAll();
+  }
+
+  /** Rallume le courtier en pause (un clic sur l'indicateur) ; l'état arrive par broker.status. */
+  async wakeBroker(): Promise<void> {
+    try {
+      this.broker.set(await this.api.json<BrokerStatus>("/api/broker/wake", "POST"));
+    } catch (e) {
+      this.error.set(`Rallumage du courtier impossible : ${(e as Error).message}`);
+    }
   }
 
   setTimeframe(id: string, timeframe: string): Promise<boolean> {

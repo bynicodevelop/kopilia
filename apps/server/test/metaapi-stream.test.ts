@@ -175,3 +175,39 @@ test("flux WebSocket : sans bougie d'une minute, les cotations passent quand mê
   assert.ok(!lines.some((l) => l.includes("pas de flux")), "le produit n'est pas refusé");
   stream.stop();
 });
+
+test("flux WebSocket : compte en pause, connexion refermée sans nouvel essai ; rallumé, rouverte tout de suite", async () => {
+  const { sdk, calls } = fakeSdk();
+  const lines: string[] = [];
+  const stream = new MetaApiStream(
+    TOKEN,
+    async () => "acc-1",
+    logger(lines),
+    () => sdk,
+  );
+  stream.retryMs = [5];
+  stream.watch(["NAS100"]);
+  await sleep(5);
+  assert.ok(calls.includes("subscribe NAS100 quotes"));
+  stream.pause();
+  await sleep(5);
+  assert.deepEqual(calls.slice(-2), ["close", "api close"], "la connexion est refermée");
+  const closed = calls.length;
+  stream.watch(["NAS100", "XAUUSD"]); // un encart ouvert pendant la pause : rien ne part
+  await sleep(20);
+  assert.equal(calls.length, closed, "rien n'est retenté en pause");
+  stream.resume();
+  await sleep(5);
+  assert.deepEqual(calls.slice(closed), [
+    "api",
+    "account acc-1",
+    "connect",
+    "synchronized",
+    "subscribe NAS100 quotes",
+    "subscribe NAS100 candles 1m",
+    "subscribe XAUUSD quotes",
+    "subscribe XAUUSD candles 1m",
+  ]);
+  assert.ok(!lines.some((l) => l.startsWith("warn")), "une pause n'est pas une panne");
+  stream.stop();
+});

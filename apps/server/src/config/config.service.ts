@@ -137,6 +137,15 @@ export class ConfigService {
   readonly metaApiDataUrl: string;
   /** Cotations des encarts poussées par MetaApi (WebSocket) ; sinon, interrogées toutes les 2 s. */
   readonly metaApiStream: boolean;
+  /**
+   * Pause du compte MetaApi (week-end, nuit en option, à la voix) : MetaApi
+   * facture chaque heure où il est déployé. Coupée (0), Kopilia ne touche
+   * jamais à l'état du compte : un serveur d'essai sur le compte de
+   * l'utilisateur la coupe toujours.
+   */
+  readonly brokerPause: boolean;
+  /** Sans usage du marché pendant ce délai (min), un compte allumé pendant une fenêtre de pause se rendort. */
+  readonly brokerIdleMinutes: number;
   /** Une alerte qui se déclenche sans écran ouvert s'affiche en notification du Mac. */
   readonly alertNotify: boolean;
   /**
@@ -271,6 +280,9 @@ export class ConfigService {
     this.metaApiClientUrl = (process.env.KOPILIA_METAAPI_CLIENT_URL ?? "").trim().replace(/\/+$/, "");
     this.metaApiDataUrl = (process.env.KOPILIA_METAAPI_DATA_URL ?? "").trim().replace(/\/+$/, "");
     this.metaApiStream = (process.env.KOPILIA_METAAPI_STREAM ?? "1") !== "0";
+    this.brokerPause = (process.env.KOPILIA_BROKER_PAUSE ?? "1") !== "0";
+    const idle = Number(process.env.KOPILIA_BROKER_IDLE_MIN ?? "20");
+    this.brokerIdleMinutes = Number.isFinite(idle) && idle > 0 ? idle : 20;
     this.alertNotify = (process.env.KOPILIA_ALERT_NOTIFY ?? "1") !== "0";
     this.tradingOrders = (process.env.KOPILIA_TRADING_ORDERS ?? "0") === "1";
     this.tradingLive = (process.env.KOPILIA_TRADING_LIVE ?? "0") === "1";

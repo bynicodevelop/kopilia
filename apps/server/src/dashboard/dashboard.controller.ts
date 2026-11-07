@@ -1,6 +1,7 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Optional, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { SessionGuard } from "../http/session.guard.js";
 import { MarketService } from "../market/market.service.js";
+import { BrokerPauseService } from "../market/broker-pause.service.js";
 import { alertTimeframeOf, isChartTimeframe } from "../market/timeframes.js";
 import { DashboardError, DashboardService } from "./dashboard.service.js";
 import { LevelService } from "../setups/level.service.js";
@@ -26,6 +27,7 @@ export class DashboardController {
     private readonly levels: LevelService,
     private readonly jobs: JobService,
     private readonly trading: TradingService,
+    @Optional() private readonly broker?: BrokerPauseService,
   ) {}
 
   @Get()
@@ -38,6 +40,8 @@ export class DashboardController {
   async candles(@Query("symbol") symbol?: string, @Query("timeframe") timeframe?: string, @Query("before") before?: string, @Query("limit") limit?: string) {
     if (!symbol) throw new BadRequestException("symbol requis");
     if (!isChartTimeframe(timeframe)) throw new BadRequestException("unité de temps inconnue");
+    // Un graphique ouvert ou changé à l'écran : le courtier ne s'endort pas sous ses yeux.
+    this.broker?.touch();
     const r = await this.market.chartCandles(symbol, timeframe, { before: Number(before) || undefined, limit: Number(limit) || undefined });
     if ("error" in r) throw new BadRequestException(r.error);
     return r;

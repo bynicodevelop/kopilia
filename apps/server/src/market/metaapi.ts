@@ -6,7 +6,8 @@
 
 /** Erreur lisible renvoyée telle quelle à Kopilia (jeton refusé, compte non déployé…). */
 /** Ce qui permet de réagir à une erreur sans dépendre de son texte (fait pour être dit). */
-export type MarketErrorCode = "rate_limited";
+/** « paused » : le compte MetaApi est en pause (voir BrokerPauseService), rien n'a été demandé à MetaApi. */
+export type MarketErrorCode = "rate_limited" | "paused";
 
 export class MarketError extends Error {
   constructor(

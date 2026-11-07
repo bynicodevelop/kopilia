@@ -825,6 +825,13 @@ export class ChartPanelComponent implements AfterViewInit, OnDestroy {
         if (this.chart && key !== this.loadedKey) void this.load();
       });
     });
+    // Le courtier vient de se rallumer : un graphique resté sans bougies (en pause) se recharge.
+    effect(() => {
+      const wakes = this.kopilia.brokerWakes();
+      untracked(() => {
+        if (wakes && this.chart && this.failed()) void this.load();
+      });
+    });
     // Chaque cotation anime la bougie en cours.
     effect(() => {
       const q = this.quote();

@@ -13,3 +13,4 @@ export * from "./news.js";
 export * from "./trading.js";
 export * from "./journal.js";
 export * from "./algo.js";
+export * from "./broker.js";

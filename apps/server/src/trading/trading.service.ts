@@ -327,6 +327,7 @@ export class TradingService
   }
 
   private async refresh() {
+    if (this.market.paused) return;
     const symbols = this.wantedSymbols();
     if (!symbols.length && !this.liveTrades().length) return;
     const before = JSON.stringify(this.state());
@@ -1066,7 +1067,8 @@ export class TradingService
   }
 
   private async tick() {
-    if (!this.liveTrades().length) return;
+    // Compte MetaApi en pause (le week-end) : rien ne bouge, le suivi reprend au rallumage.
+    if (!this.liveTrades().length || this.market.paused) return;
     await this.sync().catch(() => undefined);
   }
 

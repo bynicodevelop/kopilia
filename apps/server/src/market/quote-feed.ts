@@ -37,6 +37,10 @@ export interface PriceStream {
   on(event: "price", listener: (symbol: string, quote: RawQuote) => void): unknown;
   on(event: "range", listener: (symbol: string, range: MinuteRange) => void): unknown;
   stop(): void;
+  /** Compte en pause : plus de connexion, plus d'essai. */
+  pause?(): void;
+  /** Compte rallumé : reconnexion tout de suite. */
+  resume?(): void;
 }
 
 /** Au-delà, le marché est fermé ou à l'arrêt : on interroge moins souvent. */
@@ -90,6 +94,8 @@ export class QuoteFeed extends EventEmitter<{ quote: [Quote]; range: [string, Mi
   private readonly retryAt = new Map<string, number>();
   /** Un produit a été ajouté pendant une interrogation : la suivante part tout de suite. */
   private urgent = false;
+  /** Compte MetaApi en pause : rien n'est interrogé ; les dernières cotations restent connues. */
+  private suspended = false;
 
   constructor(
     private readonly quote: (symbol: string) => Promise<RawQuote>,
@@ -140,7 +146,28 @@ export class QuoteFeed extends EventEmitter<{ quote: [Quote]; range: [string, Mi
   }
 
   private get active(): boolean {
-    return this.watched.length > 0;
+    return !this.suspended && this.watched.length > 0;
+  }
+
+  /** Compte en pause : plus d'interrogation ni de flux poussé, jusqu'à `resume`. */
+  suspend(): void {
+    if (this.suspended) return;
+    this.suspended = true;
+    this.clear();
+    this.stream?.pause?.();
+  }
+
+  /** Compte rallumé : les produits suivis sont interrogés tout de suite, le flux poussé se rouvre. */
+  resume(): void {
+    if (!this.suspended) return;
+    this.suspended = false;
+    this.failures.clear();
+    this.retryAt.clear();
+    this.lastError.clear();
+    this.pauseUntil = 0;
+    this.stream?.resume?.();
+    this.stream?.watch(this.watched);
+    this.schedule(0);
   }
 
   /**
