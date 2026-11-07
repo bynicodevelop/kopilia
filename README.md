@@ -4,14 +4,56 @@
 
 Tu maintiens une touche, tu parles, Kopilia te répond à voix haute : il ouvre tes graphiques, trace tes niveaux, surveille tes alertes, te fait le point macro, discute ton analyse et tient ton journal de trading. La voix et sa transcription restent sur ton Mac ; l'intelligence vient de **Claude**, avec ton propre abonnement.
 
-- **Parle-lui comme à un collègue** : maintiens **⌥ droite**, parle, lâche. Ça marche même avec TradingView devant, grâce à l'application Mac.
-- **Tes cours en direct** : graphiques de ton courtier (via MetaApi), moyennes mobiles, RSI, tracés, alertes surveillées même page fermée.
-- **Le marché résumé** : un point macro le matin et à midi, le calendrier économique, les news importantes traduites et dites au moment où elles tombent.
-- **Un contradicteur** : il note ton analyse d'un produit, te rappelle ce que tu disais hier et te pose la bonne objection.
-- **Des setups selon ta façon de trader** : il les cherche sur tes produits et tes unités de temps, et te prévient quand l'un se met en place.
-- **Prise de position** : boîte de trade, taille calculée selon ton risque, ordre préparé et envoyé **seulement sur ta confirmation** (coupé par défaut, compte de démo seulement).
-- **Journal de trading** : chaque trade avec son graphique, tes notes dictées, tes bilans du jour, de la semaine et du mois.
-- **Quand tu t'absentes** : tes alertes partent sur Telegram, graphique compris.
+## Ce qu'il sait faire
+
+### Ta voix
+- **Talkie-walkie** : maintiens **⌥ droite**, parle, lâche. Ça marche même avec TradingView devant, grâce à l'application Mac.
+- **Il te répond à voix haute**, en français. Un « stop » le coupe net.
+- **Documents et captures** : glisse un PDF ou colle une capture d'écran, puis demande « qu'est-ce que ça change pour l'or ? ».
+- **Il apprend de toi** : il retient tes habitudes et ta façon de travailler, et te demande avant d'adopter une nouvelle méthode.
+
+### Tes graphiques
+- **Tes cours en direct** : les graphiques de ton courtier (via MetaApi), de la minute au mois, jusqu'à 12 à l'écran.
+- **Tous tes produits** : matières premières, indices, devises, avec le prix et la variation du jour.
+- **Compte à rebours** : le temps qui reste avant la clôture de la bougie, sous le dernier prix.
+
+### Ton analyse technique
+- **Indicateurs** : moyennes mobiles et RSI, réglés à la voix, produit par produit.
+- **Tracés** : lignes, obliques, zones et aimant, comme sur TradingView (« mets une résistance à 2 680 »).
+- **Prix allumés** : les niveaux qu'il cite s'allument sur le graphique pendant qu'il parle.
+
+### Le marché
+- **Le point de séance** à 7 h et à 12 h 30 : ce qui a bougé, seulement le nouveau.
+- **Le calendrier économique** en heure de Paris (« à quelle heure sort le NFP ? »).
+- **Les news en direct**, traduites, et dites à voix haute quand elles comptent.
+- **L'historique à la demande** : « le plus haut de l'or cette semaine ? ».
+
+### Ta méthode
+- **Un contradicteur** : il note ton analyse de chaque produit, te rappelle ce que tu disais hier et te pose la bonne objection.
+- **Ton carnet de règles** : tu les dictes, il les écrit et te les rappelle au bon moment.
+- **Des setups à ta façon** : il les cherche sur tes produits et tes unités de temps, et te prévient quand l'un se met en place.
+- **Des agents en coulisse** : une analyse poussée part en arrière-plan, la conversation continue.
+
+### Tes alertes
+- **Sur un prix ou une ligne** : à la voix, d'un clic droit ou avec Alt+A, surveillées même page fermée.
+- **Avec une consigne** (« dis-moi si la cassure tient ») : quand elle part, il regarde pour toi.
+- **Sur Telegram** quand tu t'absentes, graphique compris.
+
+### Tes trades
+- **Boîtes de position** longue ou courte, en un clic, comme sur TradingView.
+- **Taille calculée** selon le risque que tu fixes.
+- **Rien sans ton accord** : l'ordre est préparé et ne part que sur ta confirmation (coupé par défaut, compte de démo seulement).
+
+### Ton journal
+- **Chaque trade avec son graphique**, figé au moment du trade, et tes notes dictées.
+- **Le rejeu** de tes trades sur les cours.
+- **Une IA qui relit ton trading** : bilans du jour, de la semaine et du mois.
+- **Partage sur X** : le post est prérempli, graphique compris ; tu cliques « Poster » toi-même.
+
+### Ton labo (nouveau)
+- **Laboratoire de stratégies** : décris ton idée, il écrit le robot et le teste sur des années de bougies de ton courtier.
+- **Un verdict sans complaisance** : trop peu de trades, ou une idée qui ne tient pas sur des mois jamais vus, et elle est recalée.
+- **Ta bibliothèque de robots** : chaque idée documentée, chaque essai gardé.
 
 > Kopilia est un outil d'analyse personnel. **Ce n'est pas un conseil en investissement.** Le trading de CFD et de produits à effet de levier comporte un risque élevé de perte en capital.
 
